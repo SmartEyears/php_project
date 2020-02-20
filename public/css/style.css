@@ -1,0 +1,33 @@
+.header {
+    margin: 20px 50px;
+}
+
+.content {
+    margin: 20px 60px;
+}
+
+.signupInput {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin-top: 30px;
+    padding: 100px 200px;
+}
+
+.signupBtn {
+    display: flex;
+    margin-top: 10px;
+    margin-right: 10px;
+    margin-left: 10px;
+    padding-right: 40px;
+    padding-left: 40px;
+    padding-top: 10px;
+}
+
+.loginInput {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
