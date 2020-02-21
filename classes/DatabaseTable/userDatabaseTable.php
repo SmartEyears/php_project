@@ -9,8 +9,6 @@ class userDatabaseTable {
         $this->aesCrypt = $aesCrypt;
     }
 
-    
-    //회원가입
     public function insertUser($member){
         $id = $member['mem_id'];
         $pw = password_hash($member['mem_pw'], PASSWORD_DEFAULT);
@@ -23,11 +21,11 @@ class userDatabaseTable {
         $hp = $this->aesCrypt->encrypt($hp);
         $email = $this->aesCrypt->encrypt($email);
         
-        $sql = 'INSERT INTO mem
-                (mem_id,mem_pw,mem_name,mem_hp,mem_email,regdate)
-                VALUES(:mem_id, :mem_pw, :mem_name, :mem_hp, :mem_email, NOW())';
-        $query = $this->pdo->prepare($sql);
         try{
+            $sql = 'INSERT INTO mem
+                    (mem_id,mem_pw,mem_name,mem_hp,mem_email,regdate)
+                    VALUES(:mem_id, :mem_pw, :mem_name, :mem_hp, :mem_email, NOW())';
+            $query = $this->pdo->prepare($sql);
             //트랜잭션 시작
             $this->pdo->beginTransaction();  
             
@@ -59,24 +57,6 @@ class userDatabaseTable {
             $this->pdo->commit();
         }catch(PDOException $e){
             $this->pdo->rollback();
-            echo "Message:".$e->getMessage();
-            exit;
-        }
-    }
-
-    //공백검사
-    public function emptySpace($member){
-        try{
-            if($member['mem_id'] == ""){
-                throw new Exception('아이디를 입력해주세요');
-            }else if(empty($member['mem_pw'])){
-                throw new Exception('비밀번호를 입력해주세요');
-            }else if(empty($member['mem_name'])){
-                throw new Exception('이름을 입력해주세요');
-            }else if(empty($member['mem_hp'])){
-                throw new Exception('핸드폰 번호를 입력해주세요');
-            }
-        }catch(Exception $e){
             echo "Message:".$e->getMessage();
             exit;
         }

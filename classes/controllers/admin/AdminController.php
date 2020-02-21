@@ -40,8 +40,7 @@ class AdminController{
                     $_SESSION['sess_adminName'] = $this->aesCrypt->decrypt($author[3]);
                     header('location: admin.php?action=home');
                 }else{
-                    echo "아이디 혹은 비밀번호가 틀렸습니다.";
-                    exit;
+                    throw new Exception('아이디 혹은 비밀번호가 틀렸습니다.');
                 }
             }else{
                 $title = 'adminLogin';
@@ -49,6 +48,7 @@ class AdminController{
             }
         }catch(Exception $e){
             echo "Message:".$e->getMessage();
+            exit;
         }
     }
 
@@ -63,12 +63,11 @@ class AdminController{
     public function edit(){
         try{
             if(isset($_POST['member'])){
-                if($_POST['member']['mem_pw'] == NULL){
-                    
-                }
+                
                 if($_POST['member']['mem_pw'] != $_POST['member']['mem_pw2']){
                     throw new Exception("입력한 비밀번호가 서로 다릅니다.");
                 }
+    
                 $this->adminTable->edit($_POST['member']);
                 header('location: admin.php?action=adminUserList');
             }else{
@@ -108,14 +107,21 @@ class AdminController{
                     }
                     
                     //공백 검사
-                    $this->adminTable->emptySpace($admin_mem);
+                    if($admin_mem['mem_id'] == ""){
+                        throw new Exception('아이디를 입력해주세요');
+                    }else if(empty($admin_mem['mem_pw'])){
+                        throw new Exception('비밀번호를 입력해주세요');
+                    }else if(empty($admin_mem['mem_name'])){
+                        throw new Exception('이름을 입력해주세요');
+                    }else if(empty($admin_mem['mem_hp'])){
+                        throw new Exception('핸드폰 번호를 입력해주세요');
+                    }
         
                     unset($admin_mem['mem_pw2']);
         
                     $this->adminTable->insertAdmin($admin_mem);
                     header('location: admin.php?action=home'); 
-                }
-                else{
+                }else{
                     $title = '관리자 추가';
                     
                     return ['template'=>'adminAdd.html.php', 'title' => $title ];
@@ -188,6 +194,7 @@ class AdminController{
         }
     }
 
+    //회원 마일리지 조회
     public function manageMileage(){
         $member = $_POST['member'];
         $id = $member['id'];
@@ -239,6 +246,7 @@ class AdminController{
         }else{
             $date = NULL;
         }
+
         try{
             if($mileage['status'] == "적립"){
                 $status = "N";

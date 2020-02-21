@@ -10,24 +10,6 @@ class adminDatabaseTable {
         $this->aesCrypt = $aesCrypt;
     }
 
-    //공백검사
-    public function emptySpace($member){
-        try{
-            if($member['mem_id'] == ""){
-                throw new Exception('아이디를 입력해주세요');
-            }else if(empty($member['mem_pw'])){
-                throw new Exception('비밀번호를 입력해주세요');
-            }else if(empty($member['mem_name'])){
-                throw new Exception('이름을 입력해주세요');
-            }else if(empty($member['mem_hp'])){
-                throw new Exception('핸드폰 번호를 입력해주세요');
-            }
-        }catch(Exception $e){
-            echo "Message:".$e->getMessage();
-            exit;
-        }
-    }
-
     //회원 탈퇴
     public function delete($id){
         $sql = "DELETE FROM mem WHERE m_id = :id";
@@ -44,27 +26,39 @@ class adminDatabaseTable {
         }
     }
 
-    //수정
+    //수정 for update 적용하기
     public function edit($member){
         $_id = $member['_id'];
-        $pw = $this->aesCrypt->encrypt(password_hash($member['mem_pw'], PASSWORD_DEFAULT));
+        $pw = password_hash($member['mem_pw'], PASSWORD_DEFAULT);
         $name = $this->aesCrypt->encrypt($member['mem_name']);
         $hp = $this->aesCrypt->encrypt($member['mem_hp']);
         $email = $this->aesCrypt->encrypt($member['mem_email']);
-        $sql = "UPDATE `mem`
-                SET
-                   `mem_pw` = :pw,
-                   `mem_name` = :name,
-                   `mem_hp` = :hp,
-                   `mem_email` = :email
-                WHERE
-                    `m_id` = :_id
-                    ";
-        $query = $this->pdo->prepare($sql);  //SQL인젝션 예방 PDOStatement 객체를 반환
+        if($member['mem_pw'] == NULL){
+            $sql = "UPDATE `mem`
+                    SET
+                    `mem_name` = :name,
+                    `mem_hp` = :hp,
+                    `mem_email` = :email
+                    WHERE
+                        `m_id` = :_id
+                        ";
+        }else{
+            $sql = "UPDATE `mem`
+                    SET
+                    `mem_pw` = :pw,
+                    `mem_name` = :name,
+                    `mem_hp` = :hp,
+                    `mem_email` = :email
+                    WHERE
+                        `m_id` = :_id
+                        ";
+        }
         try{
+            $query = $this->pdo->prepare($sql);  //SQL인젝션 예방 PDOStatement 객체를 반환
             $this->pdo->beginTransaction();
-    
-            $query->bindValue(':pw', $pw);
+            if($member['mem_pw'] != NULL){
+                $query->bindValue(':pw', $pw);
+            }
             $query->bindValue(':name', $name);
             $query->bindValue(':hp', $hp);
             $query->bindValue(':email', $email);
@@ -122,7 +116,7 @@ class adminDatabaseTable {
     
     //회원 찾기
     public function findUser($userId){
-        $sql = 'SELECT * FROM mem WHERE mem_id = :id';
+        $sql = 'SELECT * FROM mem WHERE mem_id = :id FOR UPDATE';
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':id', $userId);
         $query->execute();

@@ -28,24 +28,25 @@ class userController {
         try{
             if(isset($_POST['member'])){
                 $member = $_POST['member'];
-                
                 //비밀번호 확인
                 if($member['mem_pw'] != $member['mem_pw2']){
                     throw new Exception('입력한 비밀번호가 서로 다릅니다.');
                 }
-    
                 //공백 검사
-                $this->userTable->emptySpace($member);
-                
+                if($member['mem_id'] == ""){
+                    throw new Exception('아이디를 입력해주세요');
+                }else if(empty($member['mem_pw'])){
+                    throw new Exception('비밀번호를 입력해주세요');
+                }else if(empty($member['mem_name'])){
+                    throw new Exception('이름을 입력해주세요');
+                }else if(empty($member['mem_hp'])){
+                    throw new Exception('핸드폰 번호를 입력해주세요');
+                }
                 //아이디 중복 검사
                 $this->userTable->validationId($member['mem_id']);
-    
                 //가입
                 $this->userTable->insertUser($member);
-                $user = $this->userTable->finduser($member['mem_id']);
-                $this->mileageTable->mileageInsert($user['m_id'], 5000, "가입 환영 마일리지", date("Y-m-d H:i:s",strtotime("+1 months")),"N");
                 header('location: index.php?action=home'); 
-    
             }
             else{
                 $title = '회원가입';
@@ -89,7 +90,7 @@ class userController {
                     if(empty($check)){
                         $money = $this->mileageTable->myMileage($_SESSION['sess_id']);
                         $end_date = date("Y-m-d H:i:s",strtotime("+1 months"));
-                        $this->mileageTable->mileageInsert($_SESSION['sess_id'], 100, "출석이벤트", $end_date, 'N');
+                        $this->mileageTable->mileageInsert($_SESSION['sess_id'], 100, "출석이벤트", $end_date, 'N', "-", 0);
                     }
                     header('location: index.php?action=home');          
                 }else{
@@ -171,9 +172,7 @@ class userController {
                     throw new Exception(' 값이 비었습니다. 빈칸을 모두 채우세요');
                 }
                 $end_date = date("Y-m-d H:i:s",strtotime("+5 year"));
-                $this->mileageTable->mileageInsert($charge_id, $charge_mil, $charge_kind, $end_date, "N");
-                //수익금 입력
-                $this->dealTable->insertMargin("충전 수수료", $charge_fee);
+                $this->mileageTable->mileageInsert($charge_id, $charge_mil, $charge_kind, $end_date, "N", "충전 수수료", $charge_fee);
                 header('location: index.php?action=pointList');
             }catch(Exception $e){
                 echo "Message:".$e->getMessage();
@@ -214,33 +213,9 @@ class userController {
                     throw new Exception('잔액이 부족합니다.');
                 }else{
                     //판매처리
-                    $this->dealTable->updateWrite($board_id);
-                    //판매자 마일리지 입급
                     $end_date = date("Y-m-d H:i:s",strtotime("+5 year"));
-                    $this->mileageTable->mileageInsert($seller_id, $price - $fee, $product." 판매", $end_date,"N");
-                    
-                    //구매자 마일리지 차감
-                    $mil_id = $this->mileageTable->selectOldMil($buyer_id); //가장 오래된 마일리지를 가져온다
-                    $this->mileageTable->reduceMileage($buyer_id, $mil_id['mil_id'], $price, $product." 구매"); //차감테이블 인서트
-                    //마일리지 차감 계산
-                    while($price > 0){
-                        $oldMileage = $this->mileageTable->selectOldMil($buyer_id);
-                        if($oldMileage['balance'] > $price){
-                            $price = $oldMileage['balance'] - $price;
-                            $this->mileageTable->updateBalance($price, "N", $buyer_id, $oldMileage['reg_date']);
-                            $price = 0;
-                        }else{
-                            $price = $price - $oldMileage['balance'];
-                            $this->mileageTable->updateBalance(0, "U", $buyer_id, $oldMileage['reg_date']);
-                        }
-                    }
-                    
-                    //수수료 내역 인서트
-                    $this->dealTable->insertMargin("거래 수수료", $fee);
-        
-                    //상세테이블 인서트
-                    $detail = $this->mileageTable->findDetail($mil_id['mil_id'], $buyer_id);
-                    $this->mileageTable->reduceDetail($detail['re_id'], $detail['mil_id'], $detail['reduce']);
+                    $this->dealTable->updateWrite($board_id, $buyer_id, $seller_id, $price, $product, $end_date,"N","거래 수수료", $fee);
+                                        
                     header('location:index.php?action=dealBoard');
                 }
             }
@@ -281,6 +256,18 @@ class userController {
             $price = $board['price'];
             $m_id = $board['m_id'];
             $seller = $board['seller'];
+
+            try{
+                if($product == NULL){
+                    throw new Exception('상품명을 입력해주세요');
+                }else if($price == NULL){
+                    throw new Exception('가격을 입력해주세요');
+                }
+                
+            }catch(Exception $e){
+                echo "Message:".$e->getMessage();
+                exit;
+            }
 
             $this->dealTable->write($product, $price, $m_id, $seller);
             header('location:index.php?action=dealBoard');

@@ -24,7 +24,7 @@ try{
     $aesCrypt = new AESCrypt($key,$iv);
     $mileageTable = new mileageDatabaseTable($pdo);
     $userTable = new userDatabaseTable($pdo, $aesCrypt);
-    $dealTable = new dealDatabaseTable($pdo);
+    $dealTable = new dealDatabaseTable($pdo, $mileageTable);
     $UserController = new UserController($userTable, $mileageTable, $aesCrypt, $dealTable);
 
     $action = $_GET['action'] ?? 'home';

@@ -8,13 +8,14 @@ class mileageDatabaseTable{
     }
     
     
-    //마일리지 인서트
-    public function mileageInsert($id, $save, $reason, $end_date, $status){
-        $sql = 'INSERT INTO saving
-        (m_id, save, balance, reason, reg_date, end_date, status)
-        VALUES(:m_id, :save, :balance, :reason, NOW(), :end_date, :status)';
-        $query = $this->pdo->prepare($sql);
+    //충전 마일리지
+    public function mileageInsert($id, $save, $reason, $end_date, $status, $kind, $margin){
         try{
+            //적립 테이블 INSERT
+            $sql = 'INSERT INTO saving
+            (m_id, save, balance, reason, reg_date, end_date, status)
+            VALUES(:m_id, :save, :balance, :reason, NOW(), :end_date, :status)';
+            $query = $this->pdo->prepare($sql);
             $this->pdo->beginTransaction();
             
             $query->bindValue(':m_id', $id);
@@ -24,24 +25,29 @@ class mileageDatabaseTable{
             $query->bindValue(':end_date', $end_date);
             $query->bindValue(':status', $status);
             $query->execute();
-            
-            $this->pdo->commit();
-        }catch(PDOException $e){
-            $this->pdo->rollback();
-        }
-        
-        $sql = 'INSERT INTO `mil_log`
-        (m_id, status, plus_minus, reason, reg_date, end_date)
-        VALUES(:m_id, "P", :plus_minus, :reason, NOW(), :end_date)';
-        $query = $this->pdo->prepare($sql);
-        try{
-            $this->pdo->beginTransaction();
+
+            //마일리지 로그 테이블 INSERT
+            $sql = 'INSERT INTO `mil_log`
+            (m_id, status, plus_minus, reason, reg_date, end_date)
+            VALUES(:m_id, "P", :plus_minus, :reason, NOW(), :end_date)';
+            $query = $this->pdo->prepare($sql);
             $query->bindValue(':m_id', $id);
             $query->bindValue(':plus_minus', $save);
             $query->bindValue(':reason', $reason);
             $query->bindValue(':end_date', $end_date);
             $query->execute();
-            
+
+            //수익테이블 INSERT
+            if($margin != 0){
+                $sql = "INSERT INTO `margin`
+                    (kind, margin, reg_date)
+                    VALUES (:kind, :margin, NOW())";
+                $query = $this->pdo->prepare($sql);
+                $query->bindValue(':kind', $kind);
+                $query->bindValue(':margin', $margin);
+                $query->execute();
+            }
+                
             $this->pdo->commit();
         }catch(PDOException $e){
             $this->pdo->rollback();
@@ -91,16 +97,16 @@ class mileageDatabaseTable{
                 SET `balance` = :balance,
                     `status` = :status
                 WHERE m_id = :m_id AND reg_date = :reg_date";
-        $query = $this->pdo->prepare($sql);
         try{
             $this->pdo->beginTransaction();
-
+            
+            $query = $this->pdo->prepare($sql);
             $query->bindValue(':balance', $balance);
             $query->bindValue(':status', $status);
             $query->bindValue(':m_id', $m_id);
             $query->bindValue(':reg_date', $reg_date);
             $query->execute();
-            
+
             $this->pdo->commit();
         }catch(PDOException $e){
             $this->pdo->rollback();
@@ -149,7 +155,7 @@ class mileageDatabaseTable{
     //사용가능한 가장 오래 된 마일리지
     public function selectOldMil($m_id){
         $sql = "SELECT * FROM `saving`
-                WHERE m_id = :m_id AND status = 'N' ORDER BY reg_date ASC LIMIT 1";
+                WHERE m_id = :m_id AND status = 'N' ORDER BY reg_date ASC LIMIT 1 FOR UPDATE";
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':m_id', $m_id);
         $query->execute();
@@ -169,7 +175,7 @@ class mileageDatabaseTable{
 
     //차감 찾아오기
     public function findDetail($mil_id, $m_id){
-        $sql = "SELECT * FROM reduce WHERE mil_id = :mil_id AND m_id = :m_id ORDER BY reg_date DESC LIMIT 1";
+        $sql = "SELECT * FROM reduce WHERE mil_id = :mil_id AND m_id = :m_id ORDER BY reg_date DESC LIMIT 1 FOR UPDATE";
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':mil_id', $mil_id);
         $query->bindValue(':m_id', $m_id);
