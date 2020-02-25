@@ -14,7 +14,7 @@
     if(val == ""){
       document.getElementById('result').value = "0";
     }else{
-      document.getElementById('result').value = fee+fee * 0.02;
+      document.getElementById('result').value = fee-fee * 0.02;
     }
   }
 
@@ -27,7 +27,7 @@
     <input type = "hidden" name = "chargeMil[id]" value="<?=$_SESSION['sess_id']?>">
     <input type = "text" name = "chargeMil[reason]" placeholder="충전 방법" list="dealWay">
     <input type = "text" name = "chargeMil[balance]" placeholder="충전 금액" onkeyup = "calc(this.value)" >
-    결제금액 : <input type = "text" id = "result" name = "chargeMil[total]" placeholder="총 결제 금액" >
+    충전금액 : <input type = "text" id = "result" name = "chargeMil[total]" placeholder="충전 금액" >
     <input class="btn btn-dark" type = "button" value="충전" onClick=send(this.form) >
     <datalist id ="dealWay">
       <option value="휴대폰 결제"></option>

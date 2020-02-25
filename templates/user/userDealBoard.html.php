@@ -1,3 +1,14 @@
+<script>
+    function send(form){
+        if(confirm('계속 진행 하시겠습니까?')){
+        form.submit();
+        window.close();
+        }else{
+        window.close();
+        }
+    }
+</script>
+
 <div class="header">
     <h1> 중고 거래 </h1>
 </div>
@@ -10,7 +21,6 @@
             <th>판매자</th>
             <th>날짜</th>
             <th>버튼</th>
-            <th>판매여부</th>
         </tr>
     </thead>
     <?php foreach($list as $board): ?>
@@ -22,12 +32,12 @@
         <td><?=$board['reg_date']?></td>
         <td>
             <?php
-            if($board['status'] == FALSE){
+            if($board['status'] == 's'){
                 if($_SESSION['sess_memId'] == $board['seller']){
                 ?>
                     <form action="" method="POST">
                         <input type="hidden" name="delete_id" value="<?=$board['_id']?>">
-                        <input type="submit" class=" btn btn-dark" value="삭제">
+                        <input type="button" class=" btn btn-dark" value="삭제" onClick=send(this.form)>
                     </form>
                 <?php
                 }else{
@@ -38,7 +48,7 @@
                         <input type="hidden" name="sell[price]" value="<?=$board['price']?>">
                         <input type="hidden" name="sell[product]" value="<?=$board['product']?>">
                         <input type="hidden" name="sell[m_id]" value="<?=$board['m_id']?>">
-                        <input type="submit" class=" btn btn-dark" value="구매">
+                        <input type="button" class=" btn btn-dark" value="구매" onClick=send(this.form)>
                     </form>
                 <?php
                 }
@@ -48,17 +58,6 @@
             <?php
             }
             ?>
-        </td>
-        <td>
-        <?php 
-            if($board['status']==FALSE){
-                echo "판매중";
-            }
-            else{
-                echo "판매완료";
-            }
-        
-        ?>
         </td>
     </tr>
     <?php endforeach; ?>

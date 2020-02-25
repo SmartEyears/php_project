@@ -2,15 +2,18 @@
 session_start();
 
 class AdminController{
+    private $pdo;
     private $adminTable;
     private $aesCrypt;
     private $mileageTable;
     private $dealTable;
     
-    public function __construct (adminDatabaseTable $adminTable, 
+    public function __construct (PDO $pdo,
+                                adminDatabaseTable $adminTable, 
                                 AESCrypt $aesCrypt, 
                                 mileageDatabaseTable $mileageTable,
                                 dealDatabaseTable $dealTable){
+        $this->pdo = $pdo;
         $this->adminTable = $adminTable;
         $this->aesCrypt = $aesCrypt;
         $this->mileageTable = $mileageTable;
@@ -67,11 +70,16 @@ class AdminController{
                 if($_POST['member']['mem_pw'] != $_POST['member']['mem_pw2']){
                     throw new Exception("입력한 비밀번호가 서로 다릅니다.");
                 }
-    
+                //트랜잭션 적용
+                $this->pdo->beginTransaction();
                 $this->adminTable->edit($_POST['member']);
+                $this->pdo->commit();
                 header('location: admin.php?action=adminUserList');
             }else{
                 $user = $this->adminTable->findUser($_POST['mem_id']);
+                if(empty($user)){
+                    throw new Exception("오류가 발생하였습니다.");
+                }
                 $user = [
                     'm_id' => $user['m_id'],
                     'mem_id' => $user['mem_id'],
@@ -90,6 +98,11 @@ class AdminController{
             }
         }catch(Exception $e){
             echo 'Message:'.$e->getMessage();
+            exit;
+        }catch(PDOException $e){
+            $this->pdo->rollback();
+            //echo $e->getMessage();
+            echo "데이터베이스 오류!";
             exit;
         }
     }
@@ -116,10 +129,10 @@ class AdminController{
                     }else if(empty($admin_mem['mem_hp'])){
                         throw new Exception('핸드폰 번호를 입력해주세요');
                     }
-        
-                    unset($admin_mem['mem_pw2']);
-        
+                    unset($admin_mem['mem_pw2']);                
+                    $this->pdo->beginTransaction();
                     $this->adminTable->insertAdmin($admin_mem);
+                    $this->pdo->commit();
                     header('location: admin.php?action=home'); 
                 }else{
                     $title = '관리자 추가';
@@ -131,6 +144,11 @@ class AdminController{
             }
         }catch(Exception $e){
             echo 'Message:'.$e->getMessage();
+            exit;
+        }catch(PDOException $e){
+            $this->pdo->rollback();
+            // echo $e->getMessage();
+            echo "데이터베이스 오류!";
             exit;
         }
     }
@@ -217,43 +235,45 @@ class AdminController{
 
     //관리자 마일리지 부여
     public function editMileage(){
-        $mileage = $_POST['mileage'];
-        $id = $mileage['m_id'];
-        $plusMinus = $mileage['mil'];
-        $balance = $this->mileageTable->myMileage($id);
-        $reason = $mileage['reason'];
-        $mil_id = $this->mileageTable->selectOldMil($id);
-        $mil_id = $mil_id['mil_id'];
-        
-        if(strlen($mileage['date']) == 5){
-            //년단위
-            $date = substr($mileage['date'], 0, 1);
-            $date = $date." year";
-            $now = date("Y-m-d H:i:s");
-            $date = date("Y-m-d H:i:s", strtotime($now.$date));
-        }else if(strlen($mileage['date']) == 7){
-            //1~9월
-            $date = substr($mileage['date'], 0, 2);
-            $date = $date." month";
-            $now = date("Y-m-d H:i:s");
-            $date = date("Y-m-d H:i:s", strtotime($now.$date));
-        }else if(strlen($mileage['date']) == 6){
-            //10~12월
-            $date = substr($mileage['date'], 0, 1);
-            $date = $date." month";
-            $now = date("Y-m-d H:i:s");
-            $date = date("Y-m-d H:i:s", strtotime($now.$date));
-        }else{
-            $date = NULL;
-        }
-
         try{
+            $mileage = $_POST['mileage'];
+            $id = $mileage['m_id'];
+            $plusMinus = $mileage['mil'];
+            $balance = $this->mileageTable->myMileage($id);
+            $reason = $mileage['reason'];
+            $mil_id = $this->mileageTable->selectOldMil($id);
+            $mil_id = $mil_id['mil_id'];
+            
+            if(strlen($mileage['date']) == 5){
+                //년단위
+                $date = substr($mileage['date'], 0, 1);
+                $date = $date." year";
+                $now = date("Y-m-d H:i:s");
+                $date = date("Y-m-d H:i:s", strtotime($now.$date));
+            }else if(strlen($mileage['date']) == 7){
+                //1~9월
+                $date = substr($mileage['date'], 0, 2);
+                $date = $date." month";
+                $now = date("Y-m-d H:i:s");
+                $date = date("Y-m-d H:i:s", strtotime($now.$date));
+            }else if(strlen($mileage['date']) == 6){
+                //10~12월
+                $date = substr($mileage['date'], 0, 1);
+                $date = $date." month";
+                $now = date("Y-m-d H:i:s");
+                $date = date("Y-m-d H:i:s", strtotime($now.$date));
+            }else{
+                $date = NULL;
+            }
+
+        
             if($mileage['status'] == "적립"){
                 $status = "N";
                 $this->mileageTable->mileageInsert($id, $plusMinus, $reason, $date, "N");    
                 header('location:admin.php?action=adminUserList');
             }else if($mileage['status'] == "사용"){
                 $status = "U";
+                //마일리지 체크
                 if($balance < $plusMinus){
                     throw new Exception('마일리지가 모자랍니다.');
                 }else{
@@ -291,10 +311,17 @@ class AdminController{
             if($_POST['id'] == NULL){
                 throw new Exception("값이 비어있습니다. 다시 시도 해주세요.");
             }
+            $this->pdo->beginTransaction();
+            $this->pdo->findAdmin($_POST['id']); 
             $this->adminTable->delete($_POST['id']);
+            $this->pdo->commit();
             header('location: admin.php?action=adminUserList');
         }catch(Exception $e){
             echo "Meassage:".$e->getMeassage();
+            exit;
+        }catch(PDOException $e){
+            $this->pdo->rollback();
+            echo "데이터베이스 오류!";
             exit;
         }
     }

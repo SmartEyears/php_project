@@ -20,51 +20,30 @@ class userDatabaseTable {
         $name = $this->aesCrypt->encrypt($name);
         $hp = $this->aesCrypt->encrypt($hp);
         $email = $this->aesCrypt->encrypt($email);
-        
-        try{
-            $sql = 'INSERT INTO mem
-                    (mem_id,mem_pw,mem_name,mem_hp,mem_email,regdate)
-                    VALUES(:mem_id, :mem_pw, :mem_name, :mem_hp, :mem_email, NOW())';
-            $query = $this->pdo->prepare($sql);
-            //트랜잭션 시작
-            $this->pdo->beginTransaction();  
-            
-            $query->bindValue(':mem_id', $id);
-            $query->bindValue(':mem_pw', $pw);
-            $query->bindValue(':mem_name', $name);
-            $query->bindValue(':mem_hp', $hp);
-            $query->bindValue(':mem_email', $email);
-            $query->execute();
-            
-            //트랜잭션 종료
-            $this->pdo->commit();
-        }catch(PDOException $e){
-            //예외 발생 시 롤백
-            $this->pdo->rollback();
-            echo "Message:".$e->getMessage();
-        }
-        
+        $sql = 'INSERT INTO mem
+                (mem_id,mem_pw,mem_name,mem_hp,mem_email,regdate)
+                VALUES(:mem_id, :mem_pw, :mem_name, :mem_hp, :mem_email, NOW())';
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':mem_id', $id);
+        $query->bindValue(':mem_pw', $pw);
+        $query->bindValue(':mem_name', $name);
+        $query->bindValue(':mem_hp', $hp);
+        $query->bindValue(':mem_email', $email);
+        $query->execute();        
     }
     
     //회원 탈퇴
     public function delete($id){
         $sql = "DELETE FROM mem WHERE m_id = :id";
         $query = $this->pdo->prepare($sql);
-        try{
-            $this->pdo->beginTransaction();
-            $query->bindValue(':id', $id);
-            $query->execute();
-            $this->pdo->commit();
-        }catch(PDOException $e){
-            $this->pdo->rollback();
-            echo "Message:".$e->getMessage();
-            exit;
-        }
+        $query->bindValue(':id', $id);
+        $query->execute();
+        $this->pdo->commit();
     }
 
     //유저 찾기
     public function findUser($userId){
-        $sql = 'SELECT * FROM mem WHERE mem_id = :id';
+        $sql = 'SELECT * FROM mem WHERE mem_id = :id FOR UPDATE';
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':id', $userId);
         $query->execute();
@@ -84,5 +63,13 @@ class userDatabaseTable {
         }catch(Exception $e){
             echo "Message:".$e->getMessage();
         }
+    }
+
+    public function selectBill($id){
+        $sql = "SELECT * FROM `bill` WHERE m_id = :m_id ORDER BY reg_date DESC";
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':m_id', $id);
+        $query->execute();
+        return $query->fetchAll();
     }
 }

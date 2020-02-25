@@ -25,7 +25,7 @@ try{
     $mileageTable = new mileageDatabaseTable($pdo);
     $adminTable = new adminDatabaseTable($pdo, $aesCrypt);
     $dealTable = new dealDatabaseTable($pdo, $mileageTable);
-    $AdminController = new AdminController($adminTable, $aesCrypt, $mileageTable, $dealTable);
+    $AdminController = new AdminController($pdo, $adminTable, $aesCrypt, $mileageTable, $dealTable);
 
     $action = $_GET['action'] ?? 'home';
 
