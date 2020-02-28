@@ -44,6 +44,7 @@
                 ?>
                     <form action="" method="POST">
                         <input type="hidden" name="sell[_id]" value="<?=$board['_id']?>">
+                        <input type="hidden" name="sell[id]" value="<?=$board['seller']?>">
                         <input type="hidden" name="sell[fee]" value="<?=$board['fee']?>">
                         <input type="hidden" name="sell[price]" value="<?=$board['price']?>">
                         <input type="hidden" name="sell[product]" value="<?=$board['product']?>">

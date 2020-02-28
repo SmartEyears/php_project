@@ -16,6 +16,7 @@
                 <a class="nav-item nav-link" href="admin.php?action=adminList">관리자 정보 조회</a>
                 <a class="nav-item nav-link" href="admin.php?action=adminAdd">관리자 추가</a>
                 <a class="nav-item nav-link" href="admin.php?action=adminMargin">수익금 조회</a>
+                <a class="nav-item nav-link" href="admin.php?action=winnerList">응모 현황</a>
                 <?php }else{?>
                 <a class="nav-item nav-link" href="admin.php?action=adminLogin">로그인</a>
                 <?php } ?>

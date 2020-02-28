@@ -7,17 +7,20 @@ class AdminController{
     private $aesCrypt;
     private $mileageTable;
     private $dealTable;
+    private $eventTable;
     
     public function __construct (PDO $pdo,
                                 adminDatabaseTable $adminTable, 
                                 AESCrypt $aesCrypt, 
                                 mileageDatabaseTable $mileageTable,
-                                dealDatabaseTable $dealTable){
+                                dealDatabaseTable $dealTable,
+                                eventDatabaseTable $eventTable){
         $this->pdo = $pdo;
         $this->adminTable = $adminTable;
         $this->aesCrypt = $aesCrypt;
         $this->mileageTable = $mileageTable;
         $this->dealTable = $dealTable;
+        $this->eventTable = $eventTable;
     }
 
     //홈
@@ -38,7 +41,7 @@ class AdminController{
                 if(!empty($author) && password_verify($pw,$author[2])){
                     //로그인 성공
                     $_SESSION['sess_admin'] = "onlyAdmin";
-                    $_SESSION['sess_id'] = $author[0]; 
+                    $_SESSION['sess_ad_id'] = $author[0]; 
                     $_SESSION['sess_adminId'] = $this->aesCrypt->decrypt($author[1]); //복호
                     $_SESSION['sess_adminName'] = $this->aesCrypt->decrypt($author[3]);
                     header('location: admin.php?action=home');
@@ -96,13 +99,13 @@ class AdminController{
                     ] 
                 ];
             }
-        }catch(Exception $e){
-            echo 'Message:'.$e->getMessage();
-            exit;
         }catch(PDOException $e){
             $this->pdo->rollback();
             //echo $e->getMessage();
             echo "데이터베이스 오류!";
+            exit;
+        }catch(Exception $e){
+            echo 'Message:'.$e->getMessage();
             exit;
         }
     }
@@ -142,13 +145,13 @@ class AdminController{
             }else{
                 header('location: admin.php?action=home');
             }
-        }catch(Exception $e){
-            echo 'Message:'.$e->getMessage();
-            exit;
         }catch(PDOException $e){
             $this->pdo->rollback();
             // echo $e->getMessage();
             echo "데이터베이스 오류!";
+            exit;
+        }catch(Exception $e){
+            echo 'Message:'.$e->getMessage();
             exit;
         }
     }
@@ -232,10 +235,36 @@ class AdminController{
                     ]  
             ];
     }
+    //회원 쿠폰 조회
+    public function manageCoupon(){
+        $member = $_POST['member'];
+        $id = $member['id'];
+        //cp_id, deal_id, status
+        $userCp = $this->eventTable->userCoupon($id);
+        $list = [];
+        foreach($userCp as $coupon){
+            $list[] = [
+                'cp_id' => $coupon['cp_id'],
+                'deal_id' => $coupon['deal_id'],
+                'status' => $coupon['status'],
+                'reg_date' => $coupon['reg_date']
+            ];
+        }
+        
+        $title="쿠폰관리";
+        return [
+            'template' => 'adminManageCP.html.php',
+            'title' => $title,
+            'variables' => [
+                'list' => $list
+            ]
+        ];
+    }
 
     //관리자 마일리지 부여
     public function editMileage(){
         try{
+            $this->pdo->beginTransaction();
             $mileage = $_POST['mileage'];
             $id = $mileage['m_id'];
             $plusMinus = $mileage['mil'];
@@ -269,7 +298,8 @@ class AdminController{
         
             if($mileage['status'] == "적립"){
                 $status = "N";
-                $this->mileageTable->mileageInsert($id, $plusMinus, $reason, $date, "N");    
+                $this->mileageTable->mileageInsert($id, $plusMinus, $reason, $date, "N", "" , ""); 
+                $this->pdo->commit();
                 header('location:admin.php?action=adminUserList');
             }else if($mileage['status'] == "사용"){
                 $status = "U";
@@ -277,27 +307,17 @@ class AdminController{
                 if($balance < $plusMinus){
                     throw new Exception('마일리지가 모자랍니다.');
                 }else{
-                    $this->mileageTable->reduceMileage($id, $mil_id, $plusMinus, $reason);
-                    //오래된 마일리지 부터 차감
-                    while($plusMinus > 0){
-                        $oldMileage = $this->mileageTable->selectOldMil($id);
-                        if($oldMileage['balance'] > $plusMinus){
-                            $plusMinus = $oldMileage['balance'] - $plusMinus;
-                            $this->mileageTable->updateBalance($plusMinus, "N", $id, $oldMileage['reg_date']);
-                            $plusMinus = 0;
-                        }else{
-                            $plusMinus = $plusMinus - $oldMileage['balance'];
-                            $this->mileageTable->updateBalance(0, "U", $id, $oldMileage['reg_date']);
-                        }
-                    }
-                    //상세테이블 인서트
-                    $detail = $this->mileageTable->findDetail($mil_id, $id);
-                    $this->mileageTable->reduceDetail($detail['re_id'], $detail['mil_id'], $detail['reduce']);
-                    header('location:admin.php?action=adminUserList');
-                }            
+                    $this->mileageTable->reduceProcess($id, $plusMinus, $reason);   
+                }
+                $this->pdo->commit();
+                header('location:admin.php?action=adminUserList');           
             }else{
                 throw new Exception('정상적인 값을 입력해주세요');
-            } 
+            }
+        }catch(PDOException $e){
+            echo "데이터베이스 오류!";
+            $this->pdo->rollback();
+            exit;
         }catch(Exception $e){
             echo "Meassage:".$e->getMeassage();
             exit;
@@ -312,16 +332,16 @@ class AdminController{
                 throw new Exception("값이 비어있습니다. 다시 시도 해주세요.");
             }
             $this->pdo->beginTransaction();
-            $this->pdo->findAdmin($_POST['id']); 
+            $this->adminTable->findAdmin($_POST['id']); 
             $this->adminTable->delete($_POST['id']);
             $this->pdo->commit();
             header('location: admin.php?action=adminUserList');
-        }catch(Exception $e){
-            echo "Meassage:".$e->getMeassage();
-            exit;
         }catch(PDOException $e){
             $this->pdo->rollback();
             echo "데이터베이스 오류!";
+            exit;
+        }catch(Exception $e){
+            echo "Meassage:".$e->getMeassage();
             exit;
         }
     }
@@ -339,5 +359,28 @@ class AdminController{
                     'marginList' => $marginList
                 ]
         ];
+   }
+
+   public function winnerList(){
+       $list = $this->eventTable->selectEvent();
+       
+       foreach($list as $winner){
+            $user = $this->adminTable->findUser_id($winner['m_id']);
+            $user = $user['mem_id'];
+            $winnerlist[] = [
+                'event_id' => $winner['event_id'],
+                'memberId' => $user,
+                'winner' => $winner['winner'],
+                'reg_date' => $winner['reg_date']
+            ];
+        }
+       $title = "응모현황";
+       return [
+           'template' => 'adminEventList.html.php',
+           'title' => $title,
+           'variables' => [
+               'list' => $winnerlist
+           ]
+       ];
    }
 }

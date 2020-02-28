@@ -18,6 +18,7 @@
                     <a class="nav-item nav-link" href="index.php?action=billLog">결제 내역</a>
                     <a class="nav-item nav-link" href="index.php?action=dealBoard">중고 거래</a>
                     <a class="nav-item nav-link" href="index.php?action=dealLog">거래 내역</a>
+                    <a class="nav-item nav-link" href="index.php?action=event">이벤트</a>
                 <?php }else{ ?>
                     <a class="nav-item nav-link" href="index.php?action=signUp">회원 가입</a>
                     <a class="nav-item nav-link" href="index.php?action=userLogin">로그인</a>

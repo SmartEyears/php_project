@@ -102,6 +102,15 @@ class adminDatabaseTable {
         return $query->fetch();
     }
 
+    //회원 찾기
+    public function findUser_id($userId){
+        $sql = 'SELECT * FROM mem WHERE m_id = :id';
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':id', $userId);
+        $query->execute();
+        return $query->fetch();
+    }
+
     //관리자 목록
     public function selectAdmin(){
         $sql = "SELECT * FROM admin_mem ORDER BY ad_id";

@@ -14,6 +14,7 @@ try{
     include __DIR__.'/../includes/DatabaseConn.php';
     include __DIR__.'/../classes/AESCrypt.php';
     include __DIR__.'/../classes/DatabaseTable/mileageDatabaseTable.php';
+    include __DIR__.'/../classes/DatabaseTable/eventDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/adminDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/dealDatabaseTable.php';
     include __DIR__.'/../classes/controllers/admin/AdminController.php';
@@ -23,9 +24,10 @@ try{
 
     $aesCrypt = new AESCrypt($key,$iv);
     $mileageTable = new mileageDatabaseTable($pdo);
+    $eventTable = new eventDatabaseTable($pdo);
     $adminTable = new adminDatabaseTable($pdo, $aesCrypt);
     $dealTable = new dealDatabaseTable($pdo, $mileageTable);
-    $AdminController = new AdminController($pdo, $adminTable, $aesCrypt, $mileageTable, $dealTable);
+    $AdminController = new AdminController($pdo, $adminTable, $aesCrypt, $mileageTable, $dealTable, $eventTable);
 
     $action = $_GET['action'] ?? 'home';
 

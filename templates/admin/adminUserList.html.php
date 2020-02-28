@@ -11,7 +11,8 @@
                 <th>이메일</th>
                 <th>수정</th>
                 <th>삭제</th>
-                <th>마일리지관리</th>
+                <th>마일리지</th>
+                <th>쿠폰</th>
             </tr>
         </thead>
 <?php foreach($list as $oneUser): ?>
@@ -37,7 +38,14 @@
         <form action="admin.php?action=manageMileage" method="post">
             <input type="hidden" name="member[id]" value="<?=$oneUser['id']?>">
             <input type="hidden" name="member[name]" value="<?=$oneUser['mem_name']?>">
-            <input class="btn btn-outline-primary" type="submit" value="마일리지 관리">  
+            <input class="btn btn-outline-primary" type="submit" value="마일리지">  
+        </form>
+    </td>
+    <td>
+        <form action="admin.php?action=manageCoupon" method="post">
+            <input type="hidden" name="member[id]" value="<?=$oneUser['id']?>">
+            <input type="hidden" name="member[name]" value="<?=$oneUser['mem_name']?>">
+            <input class="btn btn-outline-primary" type="submit" value="쿠폰">  
         </form>
     </td>
   </tr>

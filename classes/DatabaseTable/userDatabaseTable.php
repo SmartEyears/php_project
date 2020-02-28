@@ -38,7 +38,6 @@ class userDatabaseTable {
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':id', $id);
         $query->execute();
-        $this->pdo->commit();
     }
 
     //유저 찾기
@@ -65,11 +64,5 @@ class userDatabaseTable {
         }
     }
 
-    public function selectBill($id){
-        $sql = "SELECT * FROM `bill` WHERE m_id = :m_id ORDER BY reg_date DESC";
-        $query = $this->pdo->prepare($sql);
-        $query->bindValue(':m_id', $id);
-        $query->execute();
-        return $query->fetchAll();
-    }
+    
 }
