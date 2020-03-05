@@ -190,19 +190,23 @@ class userController {
         try{
             if(isset($_POST['chargeMil'])){
                 $charge = $_POST['chargeMil'];
-                $charge_id = $charge['id'];
-                $charge_mil = $charge['total'];
-                $charge_kind = $charge['reason'];
-                $charge_fee = $charge['balance'] - $charge['total'];
-
-                if($charge['id']== NULL OR $charge['balance']== NULL OR $charge['reason']== NULL){
-                    throw new Exception(' 값이 비었습니다. 빈칸을 모두 채우세요');
+                
+                if($charge['id'] != $_SESSION['sess_id']){
+                    throw new Exception('다시 로그인하세요');
                 }
+                if($charge['id']== NULL OR $charge['balance']== NULL OR $charge['reason']== NULL){
+                    throw new Exception('값이 비었습니다.');
+                }
+                
+                $charge_id = $charge['id'];
+                $charge_mil = $charge['balance'] - ($charge['balance']*0.02);
+                $charge_kind = $charge['reason'];
+                $charge_fee = $charge['balance']*0.02;
                 $end_date = date("Y-m-d H:i:s",strtotime("+5 year"));
                 $this->pdo->beginTransaction();
                 $this->mileageTable->mileageInsert($charge_id, $charge_mil, $charge_kind, $end_date, "N", "충전 수수료", $charge_fee);
-                header('location: index.php?action=pointList');
                 $this->pdo->commit();
+                header('location: index.php?action=pointList');
             }else{
                 $title = "포인트 충전";
                 return [
@@ -212,10 +216,26 @@ class userController {
             }
         }catch(Exception $e){
             echo "Message:".$e->getMessage()."위치:".$e->getFile().":".$e->getLine();
+            return [
+                'template' => 'notice.html.php',
+                'variables' => [
+                    'message' => $e->getMessage(),
+                    'location' => "pointCharge"
+                ],
+                'title' => "오류!"
+            ];
             $this->pdo->rollback();
             exit;
         }catch(Exception $e){
             echo "Message:".$e->getMessage()."위치:".$e->getFile().":".$e->getLine();
+            return [
+                'template' => 'notice.html.php',
+                'variables' => [
+                    'message' => "다시 시도 해주세요",
+                    'location' => "pointCharge"
+                ],
+                'title' => "오류!"
+            ];
             exit;
         }
     }
@@ -223,6 +243,52 @@ class userController {
     //중고 거래
     public function dealBoard(){
         try{
+            //구매 접수
+            if(isset($_POST['deal'])){
+                $this->pdo->beginTransaction();
+                $m_id = $_POST['deal']['m_id'];
+                $cp_id = $_POST['deal']['cp_id'];
+                $deal_id = $_POST['deal']['dealboard_id'];
+
+                if($_SESSION['sess_id'] != $m_id){
+                    throw new Exception('잘못된 접근 입니다.');
+                }
+
+                if(empty($deal_id)){
+                    throw new Exception('잘못된 접근 입니다.');
+                }
+
+                $product = $this->dealTable->findWrite($deal_id);
+                $board_id = $product['board_id'];
+                $price = $product['price'];
+                $productName = $product['product'];
+                
+                if(!empty($cp_id)){
+                    $coupon = $this->dealTable->selectCoupon($cp_id); //for update
+                    if($coupon['cp_type'] == "M"){
+                        //금액권
+                        $salePri = $coupon['cp_price'];
+                        $price = $price - $salePri;
+                    }else if($coupon['cp_type'] == "P"){
+                        //퍼센트
+                        $salePri = $price * 0.1 * $coupon['cp_price'];
+                        $price = $price - $salePri;
+                    }
+                    //쿠폰 사용처리
+                    $this->eventTable->usedCoupon($cp_id);
+                    //쿠폰 로그 $cp_id, $m_id, $deal_id, $money, $money_cut, $status
+                    $this->eventTable->logCoupon($cp_id, $m_id, $deal_id, $salePri, "", "U");
+                }
+                //잔액
+                $balance = $this->mileageTable->myMileage($m_id);
+                if($balance < $price){
+                    throw new Exception('금액이 부족합니다.');
+                }
+                $this->dealTable->updateWrite($board_id, 'd', $m_id);
+                $this->mileageTable->reduceProcess($m_id, $price, $productName);
+                $this->pdo->commit();
+            }
+
             //삭제버튼
             if(isset($_POST['delete_id'])){
                 $this->pdo->beginTransaction();
@@ -231,106 +297,122 @@ class userController {
                 header('location:index.php?action=dealBoard');
                 $this->pdo->commit();
             }
+
             //구매버튼
             if(isset($_POST['sell'])){
                 //변수 정리
                 $sell = $_POST['sell'];
-                $board_id = $sell['_id'];
-                $fee = $sell['fee'];
-                $sellerId = $sell['id'];
-                $seller_id =  $sell['m_id'];
-                $buyer_id = $_SESSION['sess_id'];
-                $buyer = $_SESSION['sess_memId'];
-                $product = $sell['product'];
-                $price = $sell['price'];
-    
-                $buyer_mil = $this->mileageTable->myMileage($buyer_id);
-                
-                if(empty($price) OR empty($buyer_mil)){
-                    throw new Exception('값이 비었습니다.');
-                }
-
-                if($price > $buyer_mil){
-                    throw new Exception('잔액이 부족합니다.');
-                }else{
-                    $this->pdo->beginTransaction();
-                    //구매 프로세스
-                    //상품 상태 업데이트
-                    $this->dealTable->findWrite($board_id); //FOR UPDATE
-                    $this->dealTable->updateWrite($board_id); //상품 판매완료 상태로 업데이트
-                    //차감 프로세스
-                    $this->mileageTable->reduceProcess($buyer_id, $price, $product);
-                    //판매자에게 수수료 제외한 마일리지 부여 $id, $save, $reason, $end_date, $status, $kind, $margin
-                    $end_date = date("Y-m-d H:i:s",strtotime("+5 year"));
-                    $this->mileageTable->mileageInsert($seller_id, $price-$fee, $product."판매", $end_date, "N", "", "");
-                    //거래 내역 추가
-                    $this->dealTable->insertDealLog($buyer_id, $buyer, $board_id, $sellerId, $seller_id, $product, $price);
-                    //수수료 INSERT 
-                    $deal_id = $this->dealTable->findDealId($board_id);
-                    $this->dealTable->insertMargin($deal_id, "", $seller_id, $fee, $product."판매");
-                    //쿠폰 지급
-                    //구매자 1개 2번째 공백은 거래번호 
-                    $event_date = "2020-02-29 00:00:00"; //이벤트 종료일
-                    $this->eventTable->giveCoupon($buyer_id, $deal_id, "N", $event_date); 
-                    //판매자 2개
-                    $this->eventTable->giveCoupon($seller_id, $deal_id, "N", $event_date); 
-                    $this->eventTable->giveCoupon($seller_id, $deal_id, "N", $event_date);
-                    header('location:index.php?action=dealBoard');
-                    $this->pdo->commit();
-                }
+                $coupon = $this->eventTable->myCoupon($_SESSION['sess_id']);
+                var_dump($sell);
+                return [
+                    'template' => 'userOder.html.php',
+                    'title' => "구매 페이지",
+                    'variables' => [
+                        'sell' => $sell,
+                        'coupon' => $coupon
+                    ]
+                ];
             }
+            
+            $title = "중고 거래";
+            $result = $this->dealTable->selectWrite('s');
+            $list = [];
+            foreach ($result as $board){
+                $list[] = [
+                '_id' => $board['board_id'],
+                'product_type' => $board['product_type'],
+                'product' => $board['product'],
+                'price' => $board['price'],
+                'm_id' => $board['m_id'],
+                'seller' => $board["seller"],
+                'reg_date' => $board["reg_date"],
+                'status' => $board['status']
+                ];
+            }
+            return [
+                'template' => 'userDealBoard.html.php',
+                'title' => $title,
+                'variables' => [
+                    'list' => $list 
+                    ] 
+                ];
         }catch(PDOException $e){
             echo "Message:".$e->getMessage()."위치:".$e->getFile().":".$e->getLine();
             $this->pdo->rollback();
             exit;
         }catch(Exception $e){
             echo "Message:".$e->getMessage();
+            return [
+                'template' => 'notice.html.php',
+                'variables' => [
+                    'message' => $e->getMessage(),
+                    'location' => "dealBoard"
+                ],
+                'title' => "오류!"
+            ];
             exit;
         }
-        
-        $title = "중고 거래";
-        $result = $this->dealTable->selectWrite();
-        $list = [];
-        foreach ($result as $board){
-            $list[] = [
-                '_id' => $board['board_id'],
-                'product' => $board['product'],
-                'price' => $board['price'],
-                'm_id' => $board['m_id'],
-                'seller' => $board["seller"],
-                'reg_date' => $board["reg_date"],
-                'status' => $board['status'],
-                'fee' => $board['fee']
-            ];
-        }
-        return [
-            'template' => 'userDealBoard.html.php',
-            'title' => $title,
-            'variables' => [
-                'list' => $list 
-            ] 
-        ];
+    }
+    
+    //구매하기
+    public function requestDeal(){
+        $sell = $_POST['deal'];
+        var_dump($sell);
+        exit;
+        //$fee =
+        $sellerId = $sell['id'];
+        $seller_id =  $sell['m_id'];
+        $buyer_id = $_SESSION['sess_id'];
+        $buyer = $_SESSION['sess_memId'];
+        $product = $sell['product'];
+        $price = $sell['price'];
+    
+        $this->pdo->beginTransaction();
+        //구매 프로세스
+        //상품 상태 업데이트
+        $this->dealTable->findWrite($board_id); //FOR UPDATE
+        $this->dealTable->updateWrite($board_id); //상품 판매완료 상태로 업데이트
+        //차감 프로세스
+        $this->mileageTable->reduceProcess($buyer_id, $price, $product);
+        //판매자에게 수수료 제외한 마일리지 부여 $id, $save, $reason, $end_date, $status, $kind, $margin
+        $end_date = date("Y-m-d H:i:s",strtotime("+5 year"));
+        $this->mileageTable->mileageInsert($seller_id, $price-$fee, $product."판매", $end_date, "N", "", "");
+        //거래 내역 추가
+        $this->dealTable->insertDealLog($buyer_id, $buyer, $board_id, $sellerId, $seller_id, $product, $price);
+        //수수료 INSERT 
+        $deal_id = $this->dealTable->findDealId($board_id);
+        $this->dealTable->insertMargin($deal_id, "", $seller_id, $fee, $product."판매");
+        //쿠폰 지급
+        //구매자 1개 2번째 공백은 거래번호 
+        $event_date = "2020-02-29 00:00:00"; //이벤트 종료일
+        //$cp_type, $cp_target, $cp_price, $cp_name, $cp_max, $cp_min, $m_id, $end_date
+        $this->eventTable->giveCoupon("E", "", "", "이벤트 참여 쿠폰", "", "", $buyer_id, $end_date);
+
+        //판매자 2개
+        header('location:index.php?action=dealBoard');
+        $this->pdo->commit();
     }
 
     //게시판 글쓰기
     public function boardCreate(){
         try{
             if(isset($_POST['board'])){
-                    $board = $_POST['board'];
-                    $product = $board['product'];
-                    $price = $board['price'];
-                    $m_id = $board['m_id'];
-                    $seller = $board['seller'];
+                $board = $_POST['board'];
+                $product_type = $board['product_type'];
+                $product = $board['product'];
+                $price = $board['price'];
+                $m_id = $board['m_id'];
+                $seller = $board['seller'];
 
-                    if($product == NULL){
-                        throw new Exception('상품명을 입력해주세요', 1);
-                    }else if($price == NULL){
-                        throw new Exception('가격을 입력해주세요', 2);
-                    }
-                    $this->pdo->beginTransaction();
-                    $this->dealTable->write($product, $price, $m_id, $seller);
-                    header('location:index.php?action=dealBoard');    
-                    $this->pdo->commit();
+                if($product == NULL){
+                    throw new Exception('상품명을 입력해주세요', 1);
+                }else if($price == NULL){
+                    throw new Exception('가격을 입력해주세요', 2);
+                }
+                $this->pdo->beginTransaction();
+                $this->dealTable->write($product_type, $product, $price, $m_id, $seller);
+                header('location:index.php?action=dealBoard');    
+                $this->pdo->commit();
             }else{
                 $title = "글쓰기";
                 return [
@@ -344,7 +426,7 @@ class userController {
             exit;
         }catch(Exception $e){
             echo "Message:".$e->getMessage();
-            $e->getCode(); // 코드 값으로 별도 처리
+            $e->getCode(); // 코드 값 반환
             exit;
         }
     }
@@ -417,6 +499,144 @@ class userController {
              ]
         ];
     }
+   
+    //구매자 구매취소
+    public function dealWait(){
+        try{
+            if(isset($_POST['selfRefuse'])){
+                $this->pdo->beginTransaction();
+                $board_id = $_POST['selfRefuse'];
+                $product = $this->dealTable->findWrite($board_id);
+                $buyer_id = $product['buyer'];
+                $this->dealTable->updateWrite($board_id, 's', '');
+                //쿠폰 지급 cp_log에서 거래번호로 조회
+                $coupon = $this->dealTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
+                if(!empty($coupon)){
+                    //쿠폰 돌려주고 로그 남김
+                    $this->dealTable->updateUsedCP($coupon['cp_id'], $coupon['m_id'], "", 0, 0, 'G');
+                }
+                //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
+                $salePri = $coupon['money'] ?? 0;
+                $price = $product['price'] - $salePri;
+                $product_name = $product['name'];
+                $this->mileageTable->mileageInsert($buyer_id, $price,'거래 취소로 인한 환불', NULL, 'N', '0');
+                $this->pdo->commit();
+                header('location:index.php?action=dealWait');
+            }
+            $title="구매 대기";
+            $list = $this->dealTable->selectWaitDeal($_SESSION['sess_id']);
+            return [
+                'template' => 'userDealWait.html.php',
+                'title' => $title,
+                'variables' =>[ 
+                    'list'=>$list
+                 ]
+            ];
+        }catch(PDOException $e){
+            echo "Message:".$e->getMessage()."위치:".$e->getFile().":".$e->getLine();
+            $this->pdo->rollback();
+            exit;
+        }catch(Exception $e){
+            echo "Message:".$e->getMessage();
+            return [
+                'template' => 'notice.html.php',
+                'variables' => [
+                    'message' => $e->getMessage(),
+                    'location' => "dealBoard"
+                ],
+                'title' => "오류!"
+            ];
+            exit;
+        }
+    }
+
+    public function dealing(){
+        try{
+            if(isset($_POST['agree'])){
+                //승락
+                //마일리지 및 수수료 계산후 분뱌
+                $this->pdo->beginTransaction();
+                $board_id = $_POST['agree'];
+                $product = $this->dealTable->findWrite($board_id);
+
+                $seller_id = $product['m_id'];
+                $coupon = $this->dealTable->findUseCoupon($board_id);
+
+                $product_name = $product['product'];
+                $price = $product['price'];
+                $buyer_id = $product['buyer'];
+                $seller = $product['seller'];
+                $user = $this->userTable->selectUser($buyer_id);
+
+                //판매 완료로 변환
+                $this->dealTable->updateWrite($board_id, 'c', $buyer_id);
+                //거래 내역 추가
+                $this->dealTable->insertDealLog($buyer_id, $user['mem_id'], $board_id, $seller_id, $seller, $product_name, $price, $coupon['money']);
+
+                if(!empty($coupon)){
+                    $price = $price - $coupon['money'];
+                }
+                
+                $fee = $price *0.05;
+                $this->mileageTable->mileageInsert($seller_id, $price-$fee, $product_name.'판매', NULL,'N', $fee);
+
+                //이벤트 쿠폰 발급
+                //$cp_type, $cp_target, $cp_price, $cp_name, $cp_max, $cp_min, $m_id, $end_date
+                $this->eventTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
+                $this->eventTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
+                $this->eventTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $buyer_id, NULL);
+
+                $this->pdo->commit();
+            }
+            if(isset($_POST['refuse'])){
+                //거절
+                //거래중으로 변경 거래번호
+                $this->pdo->beginTransaction();
+                $board_id = $_POST['refuse'];
+                $product = $this->dealTable->findWrite($board_id);
+                $buyer_id = $product['buyer'];
+                $this->dealTable->updateWrite($board_id, 's', '');
+                //쿠폰 지급 cp_log에서 거래번호로 조회
+                $coupon = $this->dealTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
+                if(!empty($coupon)){
+                    //쿠폰 돌려주고 로그 남김
+                    $this->dealTable->updateUsedCP($coupon['cp_id'], $coupon['m_id'], "", 0, 0, 'G');
+                }
+                //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
+                $salePri = $coupon['money'] ?? 0;
+                $price = $product['price'] - $salePri;
+                $product_name = $product['name'];
+                $this->mileageTable->mileageInsert($buyer_id, $price,'거래 취소로 인한 환불', NULL, 'N', '0');
+                $this->pdo->commit();
+                header('location:index.php?action=dealing');
+            }
+            $title = "진행 중인 거래";
+            $dealList = $this->dealTable->selectDealing($_SESSION['sess_id'],'d');
+            var_dump($dealList);
+            return [
+                'template' => 'userDealPage.html.php',
+                'title' => $title,
+                'variables' => [
+                    'list' =>$dealList
+                ]
+            ];
+        }catch(PDOException $e){
+            echo "Message:".$e->getMessage()."위치:".$e->getFile().":".$e->getLine();
+            $this->pdo->rollback();
+            exit;
+        }catch(Exception $e){
+            return [
+                'template' => 'notice.html.php',
+                'variables' => [
+                    'message' => $e->getMessage(),
+                    'location' => "dealBoard"
+                ],
+                'title' => "오류!"
+            ];
+            exit;
+        }
+
+    }
 
     public function event(){
         try{
@@ -430,79 +650,98 @@ class userController {
                 if($cp_count < 1){
                     throw new Exception("쿠폰이 없습니다.");
                 }
-                //쿠폰 사용으로 업데이트
-                
-                $this->eventTable->goEvent($cp_id);
-                //당첨알고리즘
-                $first = $this->eventTable->findWinner(1);
-                $second = $this->eventTable->findWinner(2);
-                $third = $this->eventTable->findWinner(3);
-                $fourth = $this->eventTable->findWinner(4);
-                $Fifth = $this->eventTable->findWinner(5);
-
-                $pctg = mt_rand(1,100);
-                $pctg = 1;
-                if($pctg < 2){
-                    if($first >= 1){
-                        echo "꽝 입니다.";
-                        $this->eventTable->insertEvent($m_id, $cp_id, 6);
+                //쿠폰 사용으로 업데이트               
+                $this->eventTable->usedCoupon($cp_id);
+                //당첨알고리즘                
+                function winningAlgo($winnerList){
+                    $pctg = mt_rand(1,100);
+                    if($pctg < 2){
+                        $compare = $winnerList[1] ?? 0;
+                        if($compare >= 1){
+                            return 6;
+                        }
+                        return 1;
+                    }else if($pctg < 4){
+                        $compare = $winnerList[2] ?? 0;
+                        if($compare >= 3){
+                            return 6;
+                        }
+                        return 2;
+                    }else if($pctg < 7){
+                        $compare = $winnerList[3] ?? 0;
+                        if($compare >= 10){
+                            return 6;
+                        }
+                        return 3;
+                    }else if($pctg < 12){
+                        $compare = $winnerList[4] ?? 0;
+                        if($compare >= 100){
+                            return 6;
+                        }
+                        return 4;
+                    }else if($pctg < 22){
+                        $compare = $winnerList[5] ?? 0;
+                        if($compare >= 1000){
+                            return 6;
+                        }
+                        return 5;
+                    }else{
+                        return 6;
                     }
-                    echo "1등입니다.";
-                    $this->eventTable->insertEvent($m_id, $cp_id, 1);
-                }else if($pctg < 4){
-                    if($second >= 3){
-                        echo "꽝 입니다.";
-                        $this->eventTable->insertEvent($m_id, $cp_id, 6);
-                    }
-                    echo "2등입니다.";
-                    $this->eventTable->insertEvent($m_id, $cp_id, 2);
-                }else if($pctg < 7){
-                    if($third >= 10){
-                        echo "꽝 입니다.";
-                        $this->eventTable->insertEvent($m_id, $cp_id, 6);
-                    }
-                    echo "3등입니다.";
-                    $this->eventTable->insertEvent($m_id, $cp_id, 3);
-                }else if($pctg < 12){
-                    if($fourth >= 100){
-                        echo "꽝 입니다.";
-                        $this->eventTable->insertEvent($m_id, $cp_id, 6);
-                    }
-                    echo "4등입니다.";
-                    $this->eventTable->insertEvent($m_id, $cp_id, 4);
-                }else if($pctg < 22){
-                    if($Fifth >= 1000){
-                        echo "꽝 입니다.";
-                        $this->eventTable->insertEvent($m_id, $cp_id, 6);
-                    }
-                    echo "5등입니다.";
-                    $this->eventTable->insertEvent($m_id, $cp_id, 5);
-                }else{
-                    echo "꽝 입니다.";
-                    $this->eventTable->insertEvent($m_id, $cp_id, 6);     
                 }
-                $this->pdo->commit();
-                // header('location:index.php?action=event');
-            }else{
-                $cp_list = $this->eventTable->myCoupon($_SESSION['sess_id']);
-                $cp_count = count($cp_list);
+
+                $winnerList = $this->eventTable->findWinner();                
                 
-                $one = $this->eventTable->findMeWinner(1, $_SESSION['sess_id']);
-                $two = $this->eventTable->findMeWinner(2, $_SESSION['sess_id']);
-                $three = $this->eventTable->findMeWinner(3, $_SESSION['sess_id']);
-                $four = $this->eventTable->findMeWinner(4, $_SESSION['sess_id']);
-                $five = $this->eventTable->findMeWinner(5, $_SESSION['sess_id']);
+                foreach($winnerList as $winner){
+                    $list[] = [$winner['winner'] => $winner['NUM']];
+                }
 
-                $rank = array($one, $two, $three, $four, $five);
+                $winner = array();
+                for($i=0; $i<sizeof($winnerList); $i++) {
+                        $winner[$winnerList[$i]['winner']] = $winnerList[$i]['NUM'];
+                }
 
+                $rank = winningAlgo($winner);
+                $this->eventTable->insertEvent($m_id ,$cp_id, $rank);
+
+                if($rank == 1){
+                    $this->eventTable->giveCoupon('P', null, 9, '1등 당첨 90퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                }elseif($rank == 2){
+                    $this->eventTable->giveCoupon('P', null, 5, '2등 당첨 50퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                }elseif($rank == 3){
+                    $this->eventTable->giveCoupon('M', null, 50000, '3등 당첨 50000원 할인', 50000, null, $_SESSION['sess_id'], null);
+                }elseif($rank == 4){
+                    $this->eventTable->giveCoupon('M', null, 10000, '4등 당첨 10000원 할인', 10000, null, $_SESSION['sess_id'], null);
+                }elseif($rank == 5){
+                    $this->eventTable->giveCoupon('M', null, 5000, '5등 당첨 5000원 할인', 5000, null, $_SESSION['sess_id'], null);
+                }elseif($rank == 6){
+                    $rank = "꽝";
+                }else{
+                    throw new Exception("비정상적인 접근입니다.");                    
+                }
+                
+                               
+                $this->pdo->commit();
+                return [
+                    'template' => 'notice.html.php',
+                    'variables' => [
+                        'message' => $rank." 입니다.",
+                        'location' => "event"
+                    ],
+                    'title' => "결과"
+                ];
+            }else{
+                $my_ecp = $this->eventTable->userCoupon($_SESSION['sess_id']);
+                $eventList = $this->eventTable->userEventList($_SESSION['sess_id']);
+                $cp_count = count($my_ecp);
                 $title = "이벤트";
                 return [
                     'title' => $title,
                     'template' => 'userEvent.html.php',
                     'variables' => [
-                        'cp_count' => $cp_count,
-                        'cp_list' => $cp_list,
-                        'rank' => $rank
+                        'cp_count' => $cp_count ?? 0,
+                        'cp_list' => $my_ecp,
+                        'list' => $eventList
                     ]    
                 ];
             }
@@ -511,7 +750,14 @@ class userController {
             header('location:index.php?action=event');
             exit;
         }catch(Exception $e){
-            echo "Message:".$e->getMessage();
+            return [
+                'template' => 'notice.html.php',
+                'variables' => [
+                    'message' => $e->getMessage(),
+                    'location' => "event"
+                ],
+                'title' => "결과"
+            ];
             exit;
         }
     }

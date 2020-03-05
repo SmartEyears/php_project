@@ -48,13 +48,21 @@ class userDatabaseTable {
         $query->execute();
         return $query->fetch();
     }
+
+    public function selectUser($userId){
+        $sql = 'SELECT * FROM mem WHERE m_id = :id';
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':id', $userId);
+        $query->execute();
+        return $query->fetch();
+    }
     
     public function validationId($id){
         $sql = "SELECT * FROM `mem` WHERE `mem_id` = :id" ;
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':id', $id);
         $query->execute();
-        $result = $query->fetchAll();
+        $result = $query->fetch();
         try{
             if(!empty($result)){
                 throw new Exception('중복 된 아이디 입니다.');

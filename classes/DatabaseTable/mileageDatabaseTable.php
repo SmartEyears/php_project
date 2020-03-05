@@ -9,7 +9,7 @@ class mileageDatabaseTable{
     
     
     //충전 마일리지
-    public function mileageInsert($id, $save, $reason, $end_date, $status, $kind, $fee){
+    public function mileageInsert($id, $save, $reason, $end_date, $status, $fee){
         //적립 테이블 INSERT
         $sql = 'INSERT INTO saving
         (m_id, save, balance, reason, reg_date, end_date, status)

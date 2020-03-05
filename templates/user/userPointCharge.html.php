@@ -27,7 +27,7 @@
     <input type = "hidden" name = "chargeMil[id]" value="<?=$_SESSION['sess_id']?>">
     <input type = "text" name = "chargeMil[reason]" placeholder="충전 방법" list="dealWay">
     <input type = "text" name = "chargeMil[balance]" placeholder="충전 금액" onkeyup = "calc(this.value)" >
-    충전금액 : <input type = "text" id = "result" name = "chargeMil[total]" placeholder="충전 금액" >
+    충전금액 : <input type = "text" id = "result" placeholder="충전 금액" disabled>
     <input class="btn btn-dark" type = "button" value="충전" onClick=send(this.form) >
     <datalist id ="dealWay">
       <option value="휴대폰 결제"></option>

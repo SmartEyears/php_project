@@ -21,23 +21,36 @@
         <input type="button" class="btn btn-dark"onclick=send(this.form) value="응모하기"/>
     </form>
 </div>
-<h3>당첨현황</h3>
+<h3>응모현황</h3>
 <table class="table">
     <thead>
         <tr>
-            <th>1등</th>
-            <th>2등</th>
-            <th>3등</th>
-            <th>4등</th>
-            <th>5등</th>
+            <th>번호</th>
+            <th>결과</th>
+            <th>응모일자</th>
         </tr>
     </thead>
-
+    <?php foreach($list as $winner): ?>
     <tr>
-        <td><?=$rank[0]?></td>
-        <td><?=$rank[1]?></td>
-        <td><?=$rank[2]?></td>
-        <td><?=$rank[3]?></td>
-        <td><?=$rank[4]?></td>
+        <td><?=$winner['event_id']?></td>
+        <td>
+        <?php
+        if($winner['winner'] == "1"){
+            echo "1등";
+        }else if($winner['winner'] == "2"){
+            echo "2등";
+        }else if($winner['winner'] == "3"){
+            echo "3등";
+        }else if($winner['winner'] == "4"){
+            echo "4등";
+        }else if($winner['winner'] == "5"){
+            echo "5등";
+        }else if($winner['winner'] == "6"){
+            echo "꽝";
+        }
+        ?>
+        </td>
+        <td><?=$winner['reg_date']?></td>
     </tr>
+    <?php endforeach; ?>
 </table>

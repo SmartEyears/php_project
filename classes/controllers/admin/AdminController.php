@@ -383,4 +383,30 @@ class AdminController{
            ]
        ];
    }
+   //사용내역
+   public function useCpList(){
+       $useCpLog = $this->dealTable->selectCouponLog('U');
+       $title = "쿠폰 사용 내역";
+       var_dump($useCpLog);
+       return [
+           'template' => 'adminUseCpList.html.php',
+           'title' => $title,
+           'variables' => [
+                'cpLog' => $useCpLog
+            ]
+       ];
+   }
+   //발급내역
+   public function giveCpList(){
+    $giveCpLog = $this->dealTable->selectCouponLog('G');
+    $title = "쿠폰 발급 내역";
+    var_dump($giveCpLog);
+    return [
+        'template' => 'adminGiveCpList.html.php',
+        'title' => $title,
+        'variables' => [
+            'cpLog' => $giveCpLog
+        ]
+    ];
+}
 }
