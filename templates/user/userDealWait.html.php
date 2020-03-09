@@ -11,9 +11,9 @@
 
 <div class="header">
     <h1>나의 진행 중인 거래</h1>
-    <a href=index.php?action=dealBoard>판매글</a>
-    <a href=index.php?action=dealing>판매승인</a>
-    <a href=index.php?action=dealWait>구매대기</a>
+    <a href=deal.php?action=dealBoard>판매글</a>
+    <a href=deal.php?action=dealing>판매승인</a>
+    <a href=deal.php?action=dealWait>구매대기</a>
 </div>
 <table class="table">
     <thead>

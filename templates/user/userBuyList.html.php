@@ -1,7 +1,7 @@
 <div class="header">
     <h1> 구매 내역 </h1>
-    <a href=index.php?action=dealLog>구매내역</a>
-    <a href=index.php?action=sellLog>판매내역</a>
+    <a href=deal.php?action=dealLog>구매내역</a>
+    <a href=deal.php?action=sellLog>판매내역</a>
 </div>
 <table class="table">
     <thead>
