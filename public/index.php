@@ -5,7 +5,7 @@ function loadTemplate($templateFileName, $variables = []){
 
     ob_start();
 
-    include __DIR__.'/../templates/user/'.$templateFileName;
+    include __DIR__.'/../templates/user/member/'.$templateFileName;
 
     return ob_get_clean();
 }
