@@ -11,8 +11,8 @@
 
 <div class="header">
     <h1> 중고 거래 </h1>
-    <a href=deal.php?action=dealBoard>판매글</a>
-    <a href=deal.php?action=dealing>판매승인</a>
+    <a href=deal.php?action=dealBoardView>판매글</a>
+    <a href=deal.php?action=dealingView>판매승인</a>
     <a href=deal.php?action=dealWait>구매대기</a>
 </div>
 <table class="table">
@@ -40,14 +40,14 @@
             if($board['status'] == 's'){
                 if($_SESSION['sess_memId'] == $board['seller']){
                 ?>
-                    <form action="" method="POST">
+                    <form action="deal.php?action=deleteBoard" method="POST">
                         <input type="hidden" name="delete_id" value="<?=$board['_id']?>">
                         <input type="button" class=" btn btn-dark" value="삭제" onClick=send(this.form)>
                     </form>
                 <?php
                 }else{
                 ?>
-                    <form action="" method="POST">
+                    <form action="deal.php?action=dealOderPage" method="POST">
                         <input type="hidden" name="sell[_id]" value="<?=$board['_id']?>">
                         <input type="hidden" name="sell[sellerId]" value="<?=$board['seller']?>">
                         <input type="hidden" name="sell[price]" value="<?=$board['price']?>">

@@ -44,7 +44,7 @@
         <labael><?= $sell['sellerId'] ?></label>
     </div>
     <div>
-        <labael>사용가능 쿠폰</label>
+        <labael>사용가능 쿠폰(단, 금액권의 경우 상품가격을 초과하는 경우 적용 불가)</label>
         <table class="table">
             <thead>
                 <tr>
@@ -56,7 +56,7 @@
             <tr>
                 <td><?=$cp['cp_name']?></td>
                 <td>
-                <?php if($cp['cp_target'] == $sell['product_type']){ ?>
+                <?php if($cp['cp_price'] > $sell['price']){ ?>
                     <label>적용불가</label>
                 <?php }else if($cp['cp_target'] == ""){ ?>
                     <input type='button' class="btn btn-dark" onclick='calc(<?=$cp["cp_price"]?>,<?=$cp["cp_id"]?>)' value="적용"/>
@@ -71,7 +71,7 @@
         <labael>결제금액 :</label>
         <input type='text' id ='finalPri' value='<?=$sell['price']?>' disabled>
     </div>
-    <form method='POST' action=''>
+    <form method='POST' action='deal.php?action=dealTry'>
         <input type="hidden" name='deal[m_id]' value="<?=$_SESSION['sess_id']?>">
         <input type="hidden" id ='cp_id' name='deal[cp_id]' value="">
         <input type="hidden" name='deal[dealboard_id]' value="<?=$sell['_id']?>">

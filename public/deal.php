@@ -9,12 +9,16 @@ function loadTemplate($templateFileName, $variables = []){
 
     return ob_get_clean();
 }
+function checkSession(){
+    if(empty($_SESSION['sess_id'])){
+        header('location:index.php?action=home');
+    }
+}
 
 try{
     include __DIR__.'/../includes/DatabaseConn.php';
     include __DIR__.'/../classes/AESCrypt.php';
     include __DIR__.'/../classes/DatabaseTable/dealDatabaseTable.php';
-    include __DIR__.'/../classes/DatabaseTable/eventDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/userDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/mileageDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/couponDatabaseTable.php';
@@ -25,11 +29,10 @@ try{
 
     $aesCrypt = new AESCrypt($key,$iv);
     $mileageTable = new mileageDatabaseTable($pdo);
-    $eventTable = new eventDatabaseTable($pdo);
     $userTable = new userDatabaseTable($pdo, $aesCrypt);
     $dealTable = new dealDatabaseTable($pdo);
     $couponTable = new couponDatabaseTable($pdo);
-    $DealController = new DealController($pdo, $userTable, $mileageTable, $dealTable, $eventTable, $couponTable);
+    $DealController = new DealController($pdo, $userTable, $mileageTable, $dealTable, $couponTable);
 
     $action = $_GET['action'] ?? 'home';
 
@@ -48,5 +51,5 @@ catch(PDOException $e){
 
     $output = '데이터베이스 오류:'.$e->getMessage().', 위치:'.$e->getFile().':'.$e->getLine();
 }
-
+checkSession();
 include __DIR__.'/../templates/user/userLayout.html.php';

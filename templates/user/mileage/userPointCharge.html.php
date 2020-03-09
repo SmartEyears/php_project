@@ -23,7 +23,7 @@
 <div class="header">
     <h1> 포인트 충전 </h1>
 </div>
-<form class="chargeMil" action="" method="post">
+<form class="chargeMil" action="mileage.php?action=pointCharge" method="post">
     <input type = "hidden" name = "chargeMil[id]" value="<?=$_SESSION['sess_id']?>">
     <input type = "text" name = "chargeMil[reason]" placeholder="충전 방법" list="dealWay">
     <input type = "text" name = "chargeMil[balance]" placeholder="충전 금액" onkeyup = "calc(this.value)" >

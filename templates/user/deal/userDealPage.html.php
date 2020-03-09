@@ -11,8 +11,8 @@
 
 <div class="header">
     <h1>나의 진행 중인 거래</h1>
-    <a href=deal.php?action=dealBoard>판매글</a>
-    <a href=deal.php?action=dealing>판매승인</a>
+    <a href=deal.php?action=dealBoardView>판매글</a>
+    <a href=deal.php?action=dealingView>판매승인</a>
     <a href=deal.php?action=dealWait>구매대기</a>
 </div>
 <table class="table">
@@ -35,13 +35,13 @@
         <td><?=$board['price']?></td>
         <td><?=$board['reg_date']?></td>
         <td>
-            <form action='' method='POST'>
+            <form action='deal.php?action=dealAgree' method='POST'>
                 <input type='hidden' name='agree' value='<?=$board['board_id']?>'>
                 <input type='submit' class='btn btn-dark' value="승락">
             </form>
         </td>
         <td>
-            <form action='' method='POST'>
+            <form action='deal.php?action=dealRefuse' method='POST'>
                 <input type='hidden' name='refuse' value='<?=$board['board_id']?>'>
                 <input type='submit' class='btn btn-dark' value="거절">
             </form>

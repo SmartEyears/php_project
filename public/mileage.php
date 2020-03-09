@@ -8,6 +8,12 @@ function loadTemplate($templateFileName, $variables = []){
     include __DIR__.'/../templates/user/mileage/'.$templateFileName;
 
     return ob_get_clean();
+
+}
+function checkSession(){
+    if(empty($_SESSION['sess_id'])){
+        header('location:index.php?action=home');
+    }
 }
 
 try{
@@ -36,5 +42,5 @@ catch(PDOException $e){
 
     $output = '데이터베이스 오류:'.$e->getMessage().', 위치:'.$e->getFile().':'.$e->getLine();
 }
-
+checkSession();
 include __DIR__.'/../templates/user/userLayout.html.php';

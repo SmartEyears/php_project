@@ -113,40 +113,32 @@ class AdminController{
     //관리자 추가
     public function adminAdd(){
         try{
-            if($_SESSION['sess_admin'] == "onlyAdmin"){
-                if(isset($_POST['admin_mem'])){
-                    $admin_mem = $_POST['admin_mem'];
-                    
-                    //비밀번호 확인
-                    if($admin_mem['mem_pw'] != $admin_mem['mem_pw2']){
-                        throw new Exception("입력한 비밀번호가 서로 다릅니다.");
-                    }
-                    
-                    //공백 검사
-                    if($admin_mem['mem_id'] == ""){throw new Exception('아이디를 입력해주세요');}
-                    
-                    if(empty($admin_mem['mem_pw'])){throw new Exception('비밀번호를 입력해주세요');}
-                    
-                    if(empty($admin_mem['mem_name'])){throw new Exception('이름을 입력해주세요');}
-                    
-                    if(empty($admin_mem['mem_hp'])){throw new Exception('핸드폰 번호를 입력해주세요');}
-
-                    unset($admin_mem['mem_pw2']);
-
-                    $this->pdo->beginTransaction();
-
-                    $this->adminTable->insertAdmin($admin_mem);
-
-                    $this->pdo->commit();
-                    header('location: admin.php?action=home'); 
-                }else{
-                    $title = '관리자 추가';
-                    
-                    return ['template'=>'adminAdd.html.php', 'title' => $title ];
+            if($_SESSION['sess_admin'] == "onlyAdmin"){header('location: admin.php?action=home');}
+            if(isset($_POST['admin_mem'])){
+                $admin_mem = $_POST['admin_mem'];
+                
+                //비밀번호 확인
+                if($admin_mem['mem_pw'] != $admin_mem['mem_pw2']){
+                    throw new Exception("입력한 비밀번호가 서로 다릅니다.");
                 }
+                
+                //공백 검사
+                if($admin_mem['mem_id'] == ""){throw new Exception('아이디를 입력해주세요');}
+                if(empty($admin_mem['mem_pw'])){throw new Exception('비밀번호를 입력해주세요');}
+                if(empty($admin_mem['mem_name'])){throw new Exception('이름을 입력해주세요');}
+                if(empty($admin_mem['mem_hp'])){throw new Exception('핸드폰 번호를 입력해주세요');}
+                unset($admin_mem['mem_pw2']);
+
+                $this->pdo->beginTransaction();
+
+                $this->adminTable->insertAdmin($admin_mem);
+
+                $this->pdo->commit();
+                header('location: admin.php?action=home'); 
             }else{
-                header('location: admin.php?action=home');
-            }
+                $title = '관리자 추가';
+                return ['template'=>'adminAdd.html.php', 'title' => $title ];
+            }               
         }catch(PDOException $e){
             $this->pdo->rollback();
             // echo $e->getMessage();

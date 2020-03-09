@@ -218,6 +218,7 @@ class userController {
     }
 
     public function userLogout(){
+        $this->checkSession();
         $title = '로그아웃';
     
         return ['template'=>'userLogout.html.php', 'title' => $title ];
@@ -253,7 +254,7 @@ class userController {
                 throw new Exception("쿠폰이 없습니다.");
             }
             //쿠폰 사용으로 업데이트               
-            $this->eventTable->usedCoupon($cp_id);
+            $this->couponTable->usedCoupon($cp_id);
             //당첨알고리즘                
             function winningAlgo($winnerList){
                 $pctg = mt_rand(1,100);

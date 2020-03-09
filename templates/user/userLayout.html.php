@@ -14,9 +14,9 @@
                 <?php if(isset($_SESSION['sess_id'])){ ?>
                     <a class="nav-item nav-link" href="index.php?action=userLogout">로그아웃</a>
                     <a class="nav-item nav-link" href="mileage.php?action=pointList">포인트 내역</a>
-                    <a class="nav-item nav-link" href="mileage.php?action=pointCharge">포인트 충전</a>
+                    <a class="nav-item nav-link" href="mileage.php?action=pointChargeView">포인트 충전</a>
                     <a class="nav-item nav-link" href="mileage.php?action=billLog">결제 내역</a>
-                    <a class="nav-item nav-link" href="deal.php?action=dealBoard">중고 거래</a>
+                    <a class="nav-item nav-link" href="deal.php?action=dealBoardView">중고 거래</a>
                     <a class="nav-item nav-link" href="deal.php?action=dealLog">거래 내역</a>
                     <a class="nav-item nav-link" href="index.php?action=eventView">이벤트</a>
                 <?php }else{ ?>
