@@ -7,17 +7,20 @@ class DealController{
     private $mileageTable;
     private $dealTable;
     private $eventTable;
+    private $couponTable;
 
     public function __construct (PDO $pdo,
                                 userDatabaseTable $userTable, 
                                 mileageDatabaseTable $mileageTable, 
                                 dealDatabaseTable $dealTable,
-                                eventDatabaseTable $eventTable){
+                                eventDatabaseTable $eventTable,
+                                couponDatabaseTable $couponTable){
         $this->pdo = $pdo;
         $this->userTable = $userTable;
         $this->mileageTable = $mileageTable;
         $this->dealTable = $dealTable;
         $this->eventTable = $eventTable;
+        $this->couponTable = $couponTable;
     }
 
     public function checkSession(){
@@ -62,9 +65,9 @@ class DealController{
                         $price = $price - $salePri;
                     }
                     //쿠폰 사용처리
-                    $this->eventTable->usedCoupon($cp_id);
+                    $this->couponTable->usedCoupon($cp_id);
                     //쿠폰 로그 $cp_id, $m_id, $deal_id, $money, $status
-                    $this->eventTable->logCoupon($cp_id, $m_id, $deal_id, $salePri, "U", $productName.' 상품에 쿠폰 적용');
+                    $this->couponTable->logCoupon($cp_id, $m_id, $deal_id, $salePri, "U", $productName.' 상품에 쿠폰 적용');
                 }
                 //잔액
                 $balance = $this->mileageTable->myMileage($m_id);
@@ -89,7 +92,7 @@ class DealController{
             if(isset($_POST['sell'])){
                 //변수 정리
                 $sell = $_POST['sell'];
-                $coupon = $this->eventTable->myCoupon($_SESSION['sess_id']);
+                $coupon = $this->couponTable->myCoupon($_SESSION['sess_id']);
                 //var_dump($sell);
                 return [
                     'template' => 'userOder.html.php',
@@ -191,7 +194,7 @@ class DealController{
                 $product = $this->dealTable->findWrite($board_id);
 
                 $seller_id = $product['m_id'];
-                $coupon = $this->dealTable->findUseCoupon($board_id);
+                $coupon = $this->couponTable->findUseCoupon($board_id);
 
                 $product_name = $product['product'];
                 $price = $product['price'];
@@ -213,9 +216,9 @@ class DealController{
 
                 //이벤트 쿠폰 발급
                 //$cp_type, $cp_target, $cp_price, $cp_name, $cp_max, $cp_min, $m_id, $end_date
-                $this->eventTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
-                $this->eventTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
-                $this->eventTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $buyer_id, NULL);
+                $this->couponTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
+                $this->couponTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
+                $this->couponTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $buyer_id, NULL);
 
                 $this->pdo->commit();
             }
@@ -228,12 +231,12 @@ class DealController{
                 $buyer_id = $product['buyer'];
                 $this->dealTable->updateWrite($board_id, 's', '');
                 //쿠폰 지급 cp_log에서 거래번호로 조회
-                $coupon = $this->dealTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
+                $coupon = $this->couponTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
                 $product_name = $product['product'];
                 if(!empty($coupon)){
                     //쿠폰 돌려주고 로그 남김
-                    $this->dealTable->updateUsedCP($coupon['cp_id']);
-                    $this->eventTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product_name.'주문 취소로 인한 재발급');
+                    $this->couponTable->updateUsedCP($coupon['cp_id']);
+                    $this->couponTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product_name.'주문 취소로 인한 재발급');
                 }
                 //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
                 $salePri = $coupon['money'] ?? 0;
@@ -281,12 +284,12 @@ class DealController{
                 $buyer_id = $product['buyer'];
                 $this->dealTable->updateWrite($board_id, 's', '');
                 //쿠폰 지급 cp_log에서 거래번호로 조회
-                $coupon = $this->dealTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
+                $coupon = $this->couponTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
                 if(!empty($coupon)){
                     //쿠폰 돌려주고 
-                    $this->dealTable->updateUsedCP($coupon['cp_id']);
+                    $this->couponTable->updateUsedCP($coupon['cp_id']);
                     //로그$cp_id, $m_id, $board_id, $money, $status
-                    $this->eventTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product['name'].'구매자 취소');
+                    $this->couponTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product['name'].'구매자 취소');
                 }
                 //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
                 $salePri = $coupon['money'] ?? 0;

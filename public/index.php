@@ -17,6 +17,7 @@ try{
     include __DIR__.'/../classes/DatabaseTable/eventDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/userDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/mileageDatabaseTable.php';
+    include __DIR__.'/../classes/DatabaseTable/couponDatabaseTable.php';
     include __DIR__.'/../classes/controllers/user/UserController.php';
 
     $key = "dksxoghqkqh!";
@@ -27,7 +28,8 @@ try{
     $eventTable = new eventDatabaseTable($pdo);
     $userTable = new userDatabaseTable($pdo, $aesCrypt);
     $dealTable = new dealDatabaseTable($pdo);
-    $UserController = new UserController($pdo, $userTable, $mileageTable, $aesCrypt, $eventTable);
+    $couponTable = new couponDatabaseTable($pdo);
+    $UserController = new UserController($pdo, $userTable, $mileageTable, $aesCrypt, $eventTable, $couponTable);
 
     $action = $_GET['action'] ?? 'home';
 

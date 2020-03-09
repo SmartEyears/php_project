@@ -5,19 +5,22 @@ class userController {
     private $pdo;
     private $userTable;
     private $mileageTable;
-    private $aesCrypy;
+    private $aesCrypt;
     private $eventTable;
+    private $couponTable;
 
     public function __construct (PDO $pdo,
                                 userDatabaseTable $userTable, 
                                 mileageDatabaseTable $mileageTable, 
                                 AESCrypt $aesCrypt, 
-                                eventDatabaseTable $eventTable){
+                                eventDatabaseTable $eventTable,
+                                couponDatabaseTable $couponTable){
         $this->pdo = $pdo;
         $this->userTable = $userTable;
         $this->mileageTable = $mileageTable;
         $this->aesCrypt = $aesCrypt;
         $this->eventTable = $eventTable;
+        $this->couponTable = $couponTable;
     }
 
     public function checkSession(){
@@ -227,15 +230,15 @@ class userController {
                 $this->eventTable->insertEvent($m_id ,$cp_id, $rank);
 
                 if($rank == 1){
-                    $this->eventTable->giveCoupon('P', null, 9, '1등 당첨 90퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                    $this->eventTable->couponTable('P', null, 9, '1등 당첨 90퍼센트 할인', null, null, $_SESSION['sess_id'], null);
                 }elseif($rank == 2){
-                    $this->eventTable->giveCoupon('P', null, 5, '2등 당첨 50퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                    $this->eventTable->couponTable('P', null, 5, '2등 당첨 50퍼센트 할인', null, null, $_SESSION['sess_id'], null);
                 }elseif($rank == 3){
-                    $this->eventTable->giveCoupon('M', null, 50000, '3등 당첨 50000원 할인', 50000, null, $_SESSION['sess_id'], null);
+                    $this->eventTable->couponTable('M', null, 50000, '3등 당첨 50000원 할인', 50000, null, $_SESSION['sess_id'], null);
                 }elseif($rank == 4){
-                    $this->eventTable->giveCoupon('M', null, 10000, '4등 당첨 10000원 할인', 10000, null, $_SESSION['sess_id'], null);
+                    $this->eventTable->couponTable('M', null, 10000, '4등 당첨 10000원 할인', 10000, null, $_SESSION['sess_id'], null);
                 }elseif($rank == 5){
-                    $this->eventTable->giveCoupon('M', null, 5000, '5등 당첨 5000원 할인', 5000, null, $_SESSION['sess_id'], null);
+                    $this->eventTable->couponTable('M', null, 5000, '5등 당첨 5000원 할인', 5000, null, $_SESSION['sess_id'], null);
                 }elseif($rank == 6){
                     $rank = "꽝";
                 }else{
@@ -252,7 +255,7 @@ class userController {
                     'title' => "결과"
                 ];
             }else{
-                $my_ecp = $this->eventTable->userCoupon($_SESSION['sess_id']);
+                $my_ecp = $this->couponTable->userCoupon($_SESSION['sess_id']);
                 $eventList = $this->eventTable->userEventList($_SESSION['sess_id']);
                 $cp_count = count($my_ecp);
                 $title = "이벤트";
