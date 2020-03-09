@@ -9,6 +9,7 @@
             <th>번호</th>
             <th>쿠폰 번호</th>
             <th>회원 번호</th>
+            <th>사유</th>
             <th>쿠폰 이름</th>
             <th>날짜</th>
         </tr>
@@ -18,6 +19,7 @@
         <td><?=$log['cl_id']?></td>
         <td><?=$log['cp_id']?></td>
         <td><?=$log['m_id']?></td>
+        <td><?=$log['cl_reason']?></td>
         <td><?=$log['money']?></td>
         <td><?=$log['reg_date']?></td>
     </tr>

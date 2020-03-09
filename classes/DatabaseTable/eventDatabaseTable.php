@@ -46,12 +46,13 @@ class eventDataBaseTable{
         $query->execute();
     }
 
-    public function logCoupon($cp_id, $m_id, $deal_id, $money, $money_cut, $status){
+    public function logCoupon($cp_id, $m_id, $deal_id, $money, $status, $reason){
         $sql = "INSERT `cp_log` SET cp_id=:cp_id, 
                                     m_id=:m_id, 
                                     board_id=:deal_id, 
                                     money=:money,  
                                     status=:status, 
+                                    cl_reason = :reason,
                                     reg_date=NOW()";
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':cp_id', $cp_id);
@@ -59,6 +60,7 @@ class eventDataBaseTable{
         $query->bindValue(':deal_id', $deal_id);
         $query->bindValue(':money', $money);
         $query->bindValue(':status', $status);
+        $query->bindValue(':reason', $reason);
         $query->execute();
     }
 

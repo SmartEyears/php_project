@@ -208,28 +208,10 @@ class dealDatabaseTable{
         return $query->fetch();
     }
     //사용 쿠폰 복원, 로그 남기기
-    public function updateUsedCP($cp_id, $m_id, $board_id, $money, $status){
+    public function updateUsedCP($cp_id){
         $sql = "UPDATE `coupon` SET used = 'N' WHERE cp_id = :cp_id";
         $query = $this->pdo->prepare($sql);
         $query->bindvalue(':cp_id' ,$cp_id);
-        $query->execute();
-
-        $sql = "INSERT INTO `cp_log`
-                SET
-                cp_id = :cp_id,
-                m_id = :m_id, 
-                board_id = :board_id,
-                reg_date = NOW(),
-                money = :money,
-                status = :status
-                ";
-
-        $query = $this->pdo->prepare($sql);
-        $query->bindValue(':cp_id', $cp_id);
-        $query->bindValue(':m_id', $m_id);
-        $query->bindValue(':board_id', $board_id);
-        $query->bindValue(':money', $money);
-        $query->bindValue(':status', $status);
         $query->execute();
     }
 }

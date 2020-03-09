@@ -123,18 +123,20 @@ class AdminController{
                     }
                     
                     //공백 검사
-                    if($admin_mem['mem_id'] == ""){
-                        throw new Exception('아이디를 입력해주세요');
-                    }else if(empty($admin_mem['mem_pw'])){
-                        throw new Exception('비밀번호를 입력해주세요');
-                    }else if(empty($admin_mem['mem_name'])){
-                        throw new Exception('이름을 입력해주세요');
-                    }else if(empty($admin_mem['mem_hp'])){
-                        throw new Exception('핸드폰 번호를 입력해주세요');
-                    }
-                    unset($admin_mem['mem_pw2']);                
+                    if($admin_mem['mem_id'] == ""){throw new Exception('아이디를 입력해주세요');}
+                    
+                    if(empty($admin_mem['mem_pw'])){throw new Exception('비밀번호를 입력해주세요');}
+                    
+                    if(empty($admin_mem['mem_name'])){throw new Exception('이름을 입력해주세요');}
+                    
+                    if(empty($admin_mem['mem_hp'])){throw new Exception('핸드폰 번호를 입력해주세요');}
+
+                    unset($admin_mem['mem_pw2']);
+
                     $this->pdo->beginTransaction();
+
                     $this->adminTable->insertAdmin($admin_mem);
+
                     $this->pdo->commit();
                     header('location: admin.php?action=home'); 
                 }else{
@@ -159,60 +161,63 @@ class AdminController{
      //회원정보조회
      public function adminUserList(){
         //관리자만 접속 가능
-        if($_SESSION['sess_admin'] == "onlyAdmin"){
-            $result = $this->adminTable->selectUser();    
-            $list = [];
-            foreach ($result as $oneUser){
-                $list[] = [
-                    'id' => $oneUser['m_id'],
-                    'mem_name' => $this->aesCrypt->decrypt($oneUser['mem_name']),
-                    'mem_id' => $oneUser['mem_id'],
-                    'mem_hp' => $this->aesCrypt->decrypt($oneUser['mem_hp']),
-                    'mem_email' => $this->aesCrypt->decrypt($oneUser['mem_email'])
-                ];
-            }
-    
-            $title = '회원목록';
-    
-            return ['template'=>'adminUserList.html.php',
-                    'title' => $title, 
-                    'variables' => [
-                            'list' => $list,
-                        ]   
+        if($_SESSION['sess_admin'] == "onlyAdmin"){header('location: index.php?action=home');}
+        $result = $this->adminTable->selectUser(); 
+
+        $list = [];
+
+        foreach ($result as $oneUser){
+            $list[] = [
+                'id' => $oneUser['m_id'],
+                'mem_name' => $this->aesCrypt->decrypt($oneUser['mem_name']),
+                'mem_id' => $oneUser['mem_id'],
+                'mem_hp' => $this->aesCrypt->decrypt($oneUser['mem_hp']),
+                'mem_email' => $this->aesCrypt->decrypt($oneUser['mem_email'])
             ];
-        }else{
-            header('location: index.php?action=home');
         }
+
+        $title = '회원목록';
+
+        return ['template'=>'adminUserList.html.php',
+                'title' => $title, 
+                'variables' => [
+                        'list' => $list,
+                    ]   
+        ];
+
+        
+            
+
     }
 
     //관리자정보조회
     public function adminList(){
         //관리자만 접속 가능
-        if($_SESSION['sess_admin'] == "onlyAdmin"){
-            $result = $this->adminTable->selectAdmin($this->aesCrypt->encrypt($_SESSION['sess_adminId']));
-            $list = [];
-            foreach ($result as $oneAdmin){
+        if($_SESSION['sess_admin'] == "onlyAdmin"){header('location: index.php?action=home');}
+        $result = $this->adminTable->selectAdmin($this->aesCrypt->encrypt($_SESSION['sess_adminId']));
+        $list = [];
+        foreach ($result as $oneAdmin){
 
-                $list[] = [
-                    'id' => $oneAdmin['a_id'],
-                    'mem_name' => $this->aesCrypt->decrypt($oneAdmin['ad_name']),
-                    'mem_id' => $oneAdmin['ad_id'],
-                    'mem_hp' => $this->aesCrypt->decrypt($oneAdmin['ad_hp']),
-                    'mem_email' => $this->aesCrypt->decrypt($oneAdmin['ad_email'])
-                ];
-            }
-    
-            $title = '관리자목록';
-    
-            return ['template'=>'adminList.html.php',
-                    'title' => $title, 
-                    'variables' => [
-                            'list' => $list,
-                        ]   
+            $list[] = [
+                'id' => $oneAdmin['a_id'],
+                'mem_name' => $this->aesCrypt->decrypt($oneAdmin['ad_name']),
+                'mem_id' => $oneAdmin['ad_id'],
+                'mem_hp' => $this->aesCrypt->decrypt($oneAdmin['ad_hp']),
+                'mem_email' => $this->aesCrypt->decrypt($oneAdmin['ad_email'])
             ];
-        }else{
-            header('location: index.php?action=home');
         }
+
+        $title = '관리자목록';
+
+        return ['template'=>'adminList.html.php',
+                'title' => $title, 
+                'variables' => [
+                        'list' => $list,
+                    ]   
+        ];
+        
+        
+        
     }
 
     //회원 마일리지 조회
@@ -352,12 +357,10 @@ class AdminController{
         $marginList = $this->dealTable->selectMargin();
         //var_dump($marginList);
         $title = "수익금 조회";
-        return ['template'=>'adminMargin.html.php',
-                'title' => $title,
-                'variables' => [
-                    'totalMargin' => $totalMargin,
-                    'marginList' => $marginList
-                ]
+        return [
+            'template'=>'adminMargin.html.php',
+            'title' => $title,
+            'variables' => ['totalMargin' => $totalMargin, 'marginList' => $marginList]
         ];
    }
 
@@ -374,7 +377,9 @@ class AdminController{
                 'reg_date' => $winner['reg_date']
             ];
         }
+        
        $title = "응모현황";
+
        return [
            'template' => 'adminEventList.html.php',
            'title' => $title,
@@ -387,7 +392,7 @@ class AdminController{
    public function useCpList(){
        $useCpLog = $this->dealTable->selectCouponLog('U');
        $title = "쿠폰 사용 내역";
-       var_dump($useCpLog);
+       //var_dump($useCpLog);
        return [
            'template' => 'adminUseCpList.html.php',
            'title' => $title,
@@ -400,7 +405,7 @@ class AdminController{
    public function giveCpList(){
     $giveCpLog = $this->dealTable->selectCouponLog('G');
     $title = "쿠폰 발급 내역";
-    var_dump($giveCpLog);
+    //dump($giveCpLog);
     return [
         'template' => 'adminGiveCpList.html.php',
         'title' => $title,

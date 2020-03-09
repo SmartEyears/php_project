@@ -23,6 +23,12 @@ class userController {
         $this->eventTable = $eventTable;
     }
 
+    public function checkSession(){
+        if(empty($_SESSION['sess_id'])){
+            header('location:index.php?action=home');
+        }
+    }
+
     public function home(){
         $title = 'HOME';
 
@@ -60,7 +66,7 @@ class userController {
                 return ['template'=>'userSignup.html.php', 'title' => $title ];
             }
         }catch(PDOExeception $e){
-            $this->rollback();
+            $this->pdo->rollback();
             echo "데이터 베이스 오류!";
             exit;
         }catch(Exception $e){
@@ -113,18 +119,19 @@ class userController {
         
                 return ['template'=>'userLogin.html.php', 'title' => $title ];
             }
-        }catch(Exception $e){
-            echo "Message:".$e->getMessage();
-            exit;
         }catch(PDOException $e){
             $this->pdo->rollback();
             echo "오류가 발생하였습니다.";
+            exit;
+        }catch(Exception $e){
+            echo "Message:".$e->getMessage();
             exit;
         }
     }
 
     //회원 탈퇴
     public function deleteSelf(){
+        $this->checkSession();
             try{
                 if(empty($_POST['member']['_id'])){
                     throw new Exception('값이 비었습니다.');
@@ -157,6 +164,7 @@ class userController {
 
     //포인트 내역
     public function pointList(){
+        $this->checkSession();
         $title = '포인트 내역';
         $money = $this->mileageTable->myMileage($_SESSION['sess_id']);
         $result = $this->mileageTable->searchMileage($_SESSION['sess_id']);
@@ -187,6 +195,7 @@ class userController {
 
     //포인트 충전
     public function pointCharge(){
+        $this->checkSession();
         try{
             if(isset($_POST['chargeMil'])){
                 $charge = $_POST['chargeMil'];
@@ -242,6 +251,7 @@ class userController {
 
     //중고 거래
     public function dealBoard(){
+        $this->checkSession();
         try{
             //구매 접수
             if(isset($_POST['deal'])){
@@ -276,8 +286,8 @@ class userController {
                     }
                     //쿠폰 사용처리
                     $this->eventTable->usedCoupon($cp_id);
-                    //쿠폰 로그 $cp_id, $m_id, $deal_id, $money, $money_cut, $status
-                    $this->eventTable->logCoupon($cp_id, $m_id, $deal_id, $salePri, "", "U");
+                    //쿠폰 로그 $cp_id, $m_id, $deal_id, $money, $status
+                    $this->eventTable->logCoupon($cp_id, $m_id, $deal_id, $salePri, "U", $productName.' 상품에 쿠폰 적용');
                 }
                 //잔액
                 $balance = $this->mileageTable->myMileage($m_id);
@@ -303,7 +313,7 @@ class userController {
                 //변수 정리
                 $sell = $_POST['sell'];
                 $coupon = $this->eventTable->myCoupon($_SESSION['sess_id']);
-                var_dump($sell);
+                //var_dump($sell);
                 return [
                     'template' => 'userOder.html.php',
                     'title' => "구매 페이지",
@@ -353,48 +363,10 @@ class userController {
             exit;
         }
     }
-    
-    //구매하기
-    public function requestDeal(){
-        $sell = $_POST['deal'];
-        var_dump($sell);
-        exit;
-        //$fee =
-        $sellerId = $sell['id'];
-        $seller_id =  $sell['m_id'];
-        $buyer_id = $_SESSION['sess_id'];
-        $buyer = $_SESSION['sess_memId'];
-        $product = $sell['product'];
-        $price = $sell['price'];
-    
-        $this->pdo->beginTransaction();
-        //구매 프로세스
-        //상품 상태 업데이트
-        $this->dealTable->findWrite($board_id); //FOR UPDATE
-        $this->dealTable->updateWrite($board_id); //상품 판매완료 상태로 업데이트
-        //차감 프로세스
-        $this->mileageTable->reduceProcess($buyer_id, $price, $product);
-        //판매자에게 수수료 제외한 마일리지 부여 $id, $save, $reason, $end_date, $status, $kind, $margin
-        $end_date = date("Y-m-d H:i:s",strtotime("+5 year"));
-        $this->mileageTable->mileageInsert($seller_id, $price-$fee, $product."판매", $end_date, "N", "", "");
-        //거래 내역 추가
-        $this->dealTable->insertDealLog($buyer_id, $buyer, $board_id, $sellerId, $seller_id, $product, $price);
-        //수수료 INSERT 
-        $deal_id = $this->dealTable->findDealId($board_id);
-        $this->dealTable->insertMargin($deal_id, "", $seller_id, $fee, $product."판매");
-        //쿠폰 지급
-        //구매자 1개 2번째 공백은 거래번호 
-        $event_date = "2020-02-29 00:00:00"; //이벤트 종료일
-        //$cp_type, $cp_target, $cp_price, $cp_name, $cp_max, $cp_min, $m_id, $end_date
-        $this->eventTable->giveCoupon("E", "", "", "이벤트 참여 쿠폰", "", "", $buyer_id, $end_date);
-
-        //판매자 2개
-        header('location:index.php?action=dealBoard');
-        $this->pdo->commit();
-    }
 
     //게시판 글쓰기
     public function boardCreate(){
+        $this->checkSession();
         try{
             if(isset($_POST['board'])){
                 $board = $_POST['board'];
@@ -432,6 +404,7 @@ class userController {
     }
 
     public function billLog(){  
+        $this->checkSession();
         $title = "결제 내역";
         $billList = $this->dealTable->selectBill($_SESSION['sess_id']);
         $list = [];
@@ -453,7 +426,8 @@ class userController {
         ];
     }
     
-    public function dealLog(){  
+    public function dealLog(){
+        $this->checkSession();  
         $title = "구매 내역";
         $buyList = $this->dealTable->findBuyList($_SESSION['sess_id']);
         // var_dump($buyList);
@@ -477,7 +451,8 @@ class userController {
         ];
     }
 
-    public function sellLog(){  
+    public function sellLog(){ 
+        $this->checkSession(); 
         $title = "거래 내역";
         $sellList = $this->dealTable->findSellList($_SESSION['sess_id']);
         $list = [];
@@ -502,6 +477,7 @@ class userController {
    
     //구매자 구매취소
     public function dealWait(){
+        $this->checkSession();
         try{
             if(isset($_POST['selfRefuse'])){
                 $this->pdo->beginTransaction();
@@ -512,8 +488,10 @@ class userController {
                 //쿠폰 지급 cp_log에서 거래번호로 조회
                 $coupon = $this->dealTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
                 if(!empty($coupon)){
-                    //쿠폰 돌려주고 로그 남김
-                    $this->dealTable->updateUsedCP($coupon['cp_id'], $coupon['m_id'], "", 0, 0, 'G');
+                    //쿠폰 돌려주고 
+                    $this->dealTable->updateUsedCP($coupon['cp_id']);
+                    //로그$cp_id, $m_id, $board_id, $money, $status
+                    $this->eventTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product['name'].'구매자 취소');
                 }
                 //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
                 $salePri = $coupon['money'] ?? 0;
@@ -546,11 +524,11 @@ class userController {
                 ],
                 'title' => "오류!"
             ];
-            exit;
         }
     }
 
     public function dealing(){
+        $this->checkSession();
         try{
             if(isset($_POST['agree'])){
                 //승락
@@ -588,9 +566,9 @@ class userController {
 
                 $this->pdo->commit();
             }
+
+            //거절
             if(isset($_POST['refuse'])){
-                //거절
-                //거래중으로 변경 거래번호
                 $this->pdo->beginTransaction();
                 $board_id = $_POST['refuse'];
                 $product = $this->dealTable->findWrite($board_id);
@@ -598,21 +576,23 @@ class userController {
                 $this->dealTable->updateWrite($board_id, 's', '');
                 //쿠폰 지급 cp_log에서 거래번호로 조회
                 $coupon = $this->dealTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
+                $product_name = $product['product'];
                 if(!empty($coupon)){
                     //쿠폰 돌려주고 로그 남김
-                    $this->dealTable->updateUsedCP($coupon['cp_id'], $coupon['m_id'], "", 0, 0, 'G');
+                    $this->dealTable->updateUsedCP($coupon['cp_id']);
+                    $this->eventTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product_name.'주문 취소로 인한 재발급');
                 }
                 //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
                 $salePri = $coupon['money'] ?? 0;
                 $price = $product['price'] - $salePri;
-                $product_name = $product['name'];
-                $this->mileageTable->mileageInsert($buyer_id, $price,'거래 취소로 인한 환불', NULL, 'N', '0');
+                $this->mileageTable->mileageInsert($buyer_id, $price, $product_name."거래 취소로 인한 환불", NULL, 'N', '0');
                 $this->pdo->commit();
                 header('location:index.php?action=dealing');
             }
+
             $title = "진행 중인 거래";
             $dealList = $this->dealTable->selectDealing($_SESSION['sess_id'],'d');
-            var_dump($dealList);
+            // var_dump($dealList);
             return [
                 'template' => 'userDealPage.html.php',
                 'title' => $title,
@@ -639,6 +619,7 @@ class userController {
     }
 
     public function event(){
+        $this->checkSession();
         try{
             if(isset($_POST['cp'])){
                 $this->pdo->beginTransaction();
@@ -719,7 +700,6 @@ class userController {
                 }else{
                     throw new Exception("비정상적인 접근입니다.");                    
                 }
-                
                                
                 $this->pdo->commit();
                 return [

@@ -21,7 +21,7 @@ class userDatabaseTable {
         $hp = $this->aesCrypt->encrypt($hp);
         $email = $this->aesCrypt->encrypt($email);
         $sql = 'INSERT INTO mem
-                (mem_id,mem_pw,mem_name,mem_hp,mem_email,regdate)
+                (mem_id,mem_pw,mem_name,mem_hp,mem_email,reg_date)
                 VALUES(:mem_id, :mem_pw, :mem_name, :mem_hp, :mem_email, NOW())';
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':mem_id', $id);
