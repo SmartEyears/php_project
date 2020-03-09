@@ -5,20 +5,17 @@ class DealController{
     private $pdo;
     private $userTable;
     private $mileageTable;
-    private $aesCrypt;
     private $dealTable;
     private $eventTable;
 
     public function __construct (PDO $pdo,
                                 userDatabaseTable $userTable, 
                                 mileageDatabaseTable $mileageTable, 
-                                AESCrypt $aesCrypt, 
                                 dealDatabaseTable $dealTable,
                                 eventDatabaseTable $eventTable){
         $this->pdo = $pdo;
         $this->userTable = $userTable;
         $this->mileageTable = $mileageTable;
-        $this->aesCrypt = $aesCrypt;
         $this->dealTable = $dealTable;
         $this->eventTable = $eventTable;
     }

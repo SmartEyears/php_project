@@ -12,26 +12,16 @@ function loadTemplate($templateFileName, $variables = []){
 
 try{
     include __DIR__.'/../includes/DatabaseConn.php';
-    include __DIR__.'/../classes/AESCrypt.php';
-    include __DIR__.'/../classes/DatabaseTable/dealDatabaseTable.php';
-    include __DIR__.'/../classes/DatabaseTable/eventDatabaseTable.php';
-    include __DIR__.'/../classes/DatabaseTable/userDatabaseTable.php';
     include __DIR__.'/../classes/DatabaseTable/mileageDatabaseTable.php';
-    include __DIR__.'/../classes/controllers/user/DealController.php';
+    include __DIR__.'/../classes/controllers/user/MileageController.php';
 
-    $key = "dksxoghqkqh!";
-    $iv = "xoghxoghxoghqkqh";
-
-    $aesCrypt = new AESCrypt($key,$iv);
+    
     $mileageTable = new mileageDatabaseTable($pdo);
-    $eventTable = new eventDatabaseTable($pdo);
-    $userTable = new userDatabaseTable($pdo, $aesCrypt);
-    $dealTable = new dealDatabaseTable($pdo);
-    $DealController = new DealController($pdo, $userTable, $mileageTable, $dealTable, $eventTable);
+    $MileageController = new MileageController($pdo, $mileageTable);
 
     $action = $_GET['action'] ?? 'home';
 
-    $page = $DealController->$action();
+    $page = $MileageController->$action();
 
     $title = $page['title'];
 

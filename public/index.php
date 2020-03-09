@@ -26,8 +26,8 @@ try{
     $mileageTable = new mileageDatabaseTable($pdo);
     $eventTable = new eventDatabaseTable($pdo);
     $userTable = new userDatabaseTable($pdo, $aesCrypt);
-    $dealTable = new dealDatabaseTable($pdo, $mileageTable);
-    $UserController = new UserController($pdo, $userTable, $mileageTable, $aesCrypt, $dealTable, $eventTable);
+    $dealTable = new dealDatabaseTable($pdo);
+    $UserController = new UserController($pdo, $userTable, $mileageTable, $aesCrypt, $eventTable);
 
     $action = $_GET['action'] ?? 'home';
 

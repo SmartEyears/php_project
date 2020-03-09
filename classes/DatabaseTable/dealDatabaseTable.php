@@ -1,12 +1,10 @@
 <?php
 class dealDatabaseTable{
     private $pdo;
-    private $mileageTable;
 
     //생성자
-    public function __construct (PDO $pdo, mileageDatabaseTable $mileageTable) {
+    public function __construct (PDO $pdo) {
         $this->pdo = $pdo;
-        $this->mileageTable = $mileageTable;
     }
 
     //상품 등록
@@ -174,44 +172,5 @@ class dealDatabaseTable{
         $query->bindValue(':seller_id', $m_id);
         $query->execute();
         return $query->fetchAll();
-    }
-
-    public function selectBill($id){
-        $sql = "SELECT * FROM `bill` WHERE m_id = :m_id ORDER BY reg_date DESC";
-        $query = $this->pdo->prepare($sql);
-        $query->bindValue(':m_id', $id);
-        $query->execute();
-        return $query->fetchAll();
-    }
-
-    public function selectCoupon($cp_id){
-        $sql = "SELECT * FROM `coupon` WHERE cp_id = :cp_id FOR UPDATE";
-        $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':cp_id' ,$cp_id);
-        $query->execute();
-        return $query->fetch();
-    }
-
-    public function selectCouponLog($status){
-        $sql = "SELECT * FROM `cp_log` WHERE status = :status";
-        $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':status' ,$status);
-        $query->execute();
-        return $query->fetchAll();
-    }
-
-    public function findUseCoupon($board_id){
-        $sql = "SELECT * FROM `cp_log` WHERE board_id = :board_id";
-        $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':board_id' ,$board_id);
-        $query->execute();
-        return $query->fetch();
-    }
-    //사용 쿠폰 복원, 로그 남기기
-    public function updateUsedCP($cp_id){
-        $sql = "UPDATE `coupon` SET used = 'N' WHERE cp_id = :cp_id";
-        $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':cp_id' ,$cp_id);
-        $query->execute();
     }
 }
