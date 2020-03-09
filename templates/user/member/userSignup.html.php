@@ -2,7 +2,7 @@
     <h1> 회원가입 </h1>
 </div>
 <div>
-    <form class="input signupInput" action="" method="POST">
+    <form class="input signupInput" action="index.php?action=signUp" method="POST">
         <div class="input_box"> 
             <div>
                 <input class="form-control" type="text" name="member[mem_id]" placeholder="아이디" maxlength="20">

@@ -63,13 +63,7 @@ class userDatabaseTable {
         $query->bindValue(':id', $id);
         $query->execute();
         $result = $query->fetch();
-        try{
-            if(!empty($result)){
-                throw new Exception('중복 된 아이디 입니다.');
-            }
-        }catch(Exception $e){
-            echo "Message:".$e->getMessage();
-        }
+        return $result;
     }
 
     

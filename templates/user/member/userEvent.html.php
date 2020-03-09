@@ -15,7 +15,7 @@
 </div>
 
 <div class="content">
-    <form action="" method="POST">
+    <form action="index.php?action=event" method="POST">
         <input type="hidden" name="cp[id]" value="<?=$cp_list[0]['cp_id']?>"/>
         <input type="hidden" name="cp[count]" value="<?=$cp_count?>"/>
         <input type="button" class="btn btn-dark"onclick=send(this.form) value="응모하기"/>
