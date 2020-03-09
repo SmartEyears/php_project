@@ -1,4 +1,4 @@
 <script>
     alert("<?=$message?>");
-    document.location.href="index.php?action=<?=$location?>";
+    document.location.href="<?=$location?>";
 </script>

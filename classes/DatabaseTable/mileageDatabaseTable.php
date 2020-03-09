@@ -90,9 +90,9 @@ class mileageDatabaseTable{
         $mil_id = $query->fetch();
         return $mil_id['mil_id'];
     }
-    
-    //오래된 마일리지 부터 소모
-    public function reduceProcess($buyer_id, $price, $product){
+
+    //마일리지 차감
+    public function reduceMileage($buyer_id, $price, $product){
         $sql = "INSERT INTO `mil_log`
                 (m_id, status, plus_minus , reason, reg_date)
                 VALUES(:m_id,'M',:plus_minus, :reason, NOW())";
@@ -102,39 +102,41 @@ class mileageDatabaseTable{
         $query->bindValue(':reason', $product);
         $query->execute();
 
-        while($price > 0){
-            $oldMileage = $this->selectOldMil($buyer_id); //FOR UPDATE
+        $sql = "SELECT * FROM `saving`
+                    WHERE m_id = :m_id AND status = 'N' ORDER BY mil_id ASC FOR UPDATE";
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':m_id', $buyer_id);
+        $query->execute();
+        $balanceList = $query->fetchAll();
+        foreach($balanceList as $balance){
             $sql = "UPDATE `saving`
                     SET `balance` = :balance,
                         `status` = :status
                     WHERE m_id = :m_id AND reg_date = :reg_date";
-            if($oldMileage["balance"] > $price){
-                $this->reduceDetail($oldMileage['mil_id'], $buyer_id, $price, $product);
-                $price = $oldMileage['balance'] - $price;
-                $query = $this->pdo->prepare($sql);
-                $query->bindValue(':balance', $price);
-                $query->bindValue(':status', "N");
-                $query->bindValue(':m_id', $buyer_id);
-                $query->bindValue(':reg_date', $oldMileage['reg_date']);
-                $query->execute();
-
-                $price = 0;
-            }else{
-                $price = $price - $oldMileage['balance'];
+            if($price > $balance['balance']){
+                $price = $price - $balance['balance'];
                 $query = $this->pdo->prepare($sql);
                 $query->bindValue(':balance', 0);
                 $query->bindValue(':status', "U");
                 $query->bindValue(':m_id', $buyer_id);
-                $query->bindValue(':reg_date', $oldMileage['reg_date']);
+                $query->bindValue(':reg_date', $balance['reg_date']);
                 $query->execute();
-
-                $this->reduceDetail($oldMileage['mil_id'], $buyer_id, $oldMileage['balance'], $product);
+                $this->reduceDetail($balance['mil_id'], $buyer_id, $balance['balance'], $product);
+            }else{
+                $this->reduceDetail($balance['mil_id'], $buyer_id, $price, $product);
+                $price = $balance['balance'] - $price;
+                $query = $this->pdo->prepare($sql);
+                $query->bindValue(':balance', $price);
+                $query->bindValue(':status', "N");
+                $query->bindValue(':m_id', $buyer_id);
+                $query->bindValue(':reg_date', $balance['reg_date']);
+                $query->execute();
+                break; 
             }
         }
     }
-    
-    //차감 테이블 INSERT
-    private function reduceDetail($mil_id, $id, $reduce, $reason){
+
+    public function reduceDetail($mil_id, $id, $reduce, $reason){
         $sql = "INSERT INTO `reduce` 
                 SET mil_id=:mil_id,
                     m_id=:m_id,
@@ -169,7 +171,7 @@ class mileageDatabaseTable{
     //사용가능한 가장 오래 된 마일리지
     public function selectOldMil($m_id){
         $sql = "SELECT * FROM `saving`
-                WHERE m_id = :m_id AND status = 'N' ORDER BY reg_date ASC LIMIT 1";
+                WHERE m_id = :m_id AND status = 'N' ORDER BY reg_date";
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':m_id', $m_id);
         $query->execute();

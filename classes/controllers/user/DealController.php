@@ -75,7 +75,7 @@ class DealController{
                     throw new Exception('금액이 부족합니다.');
                 }
                 $this->dealTable->updateWrite($board_id, 'd', $m_id);
-                $this->mileageTable->reduceProcess($m_id, $price, $productName);
+                $this->mileageTable->reduceMileage($m_id, $price, $productName);
                 $this->pdo->commit();
             }
 
@@ -84,7 +84,7 @@ class DealController{
                 $this->pdo->beginTransaction();
                 $this->dealTable->findWrite($_POST['delete_id']);
                 $this->dealTable->deleteWrite($_POST['delete_id']);
-                header('location:index.php?action=dealBoard');
+                header('location:deal.php?action=dealBoard');
                 $this->pdo->commit();
             }
 
@@ -163,7 +163,7 @@ class DealController{
                 }
                 $this->pdo->beginTransaction();
                 $this->dealTable->write($product_type, $product, $price, $m_id, $seller);
-                header('location:index.php?action=dealBoard');    
+                header('location:deal.php?action=dealBoard');    
                 $this->pdo->commit();
             }else{
                 $title = "글쓰기";
@@ -243,7 +243,7 @@ class DealController{
                 $price = $product['price'] - $salePri;
                 $this->mileageTable->mileageInsert($buyer_id, $price, $product_name."거래 취소로 인한 환불", NULL, 'N', '0');
                 $this->pdo->commit();
-                header('location:index.php?action=dealing');
+                header('location:deal.php?action=dealing');
             }
 
             $title = "진행 중인 거래";
@@ -297,7 +297,7 @@ class DealController{
                 $product_name = $product['name'];
                 $this->mileageTable->mileageInsert($buyer_id, $price,'거래 취소로 인한 환불', NULL, 'N', '0');
                 $this->pdo->commit();
-                header('location:index.php?action=dealWait');
+                header('location:deal.php?action=dealWait');
             }
             $title="구매 대기";
             $list = $this->dealTable->selectWaitDeal($_SESSION['sess_id']);

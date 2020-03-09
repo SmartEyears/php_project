@@ -70,7 +70,7 @@ class MileageController{
                 $this->pdo->beginTransaction();
                 $this->mileageTable->mileageInsert($charge_id, $charge_mil, $charge_kind, $end_date, "N", "충전 수수료", $charge_fee);
                 $this->pdo->commit();
-                header('location: index.php?action=pointList');
+                header('location: mileage.php?action=pointList');
             }else{
                 $title = "포인트 충전";
                 return [
@@ -84,7 +84,7 @@ class MileageController{
                 'template' => 'notice.html.php',
                 'variables' => [
                     'message' => $e->getMessage(),
-                    'location' => "pointCharge"
+                    'location' => "mileage.php?action=pointCharge"
                 ],
                 'title' => "오류!"
             ];
@@ -96,7 +96,7 @@ class MileageController{
                 'template' => 'notice.html.php',
                 'variables' => [
                     'message' => "다시 시도 해주세요",
-                    'location' => "pointCharge"
+                    'location' => "mileage.php?action=pointCharge"
                 ],
                 'title' => "오류!"
             ];

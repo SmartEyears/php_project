@@ -250,7 +250,7 @@ class userController {
                     'template' => 'notice.html.php',
                     'variables' => [
                         'message' => $rank." 입니다.",
-                        'location' => "event"
+                        'location' => "index.php?action=event"
                     ],
                     'title' => "결과"
                 ];
@@ -278,7 +278,7 @@ class userController {
                 'template' => 'notice.html.php',
                 'variables' => [
                     'message' => $e->getMessage(),
-                    'location' => "event"
+                    'location' => "index.php?action=event"
                 ],
                 'title' => "결과"
             ];
