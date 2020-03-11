@@ -3,13 +3,13 @@
     var salePri = parseInt(val);
     var ogPri = parseInt(<?=$sell['price']?>);
     var cp_ic = cp_id;
-    //alert(salePri);
-    if(salePri > 100){
+
+    if(salePri > 101){
         document.getElementById('salePri').value = salePri;
         document.getElementById('finalPri').value = ogPri - salePri;
         document.getElementById('cp_id').value = cp_id;
     }else{
-        salePri = salePri * 0.1;
+        salePri = salePri * 0.01;
         salePri = ogPri * salePri;
         document.getElementById('salePri').value = salePri;
         document.getElementById('finalPri').value = ogPri - salePri;
@@ -49,6 +49,7 @@
             <thead>
                 <tr>
                     <th>쿠폰 이름</th>
+                    <th>할인<th>
                     <th>적용</th>
                 </tr>
             </thead>
@@ -56,11 +57,24 @@
             <tr>
                 <td><?=$cp['cp_name']?></td>
                 <td>
+                <?php
+                if(empty($cp['cp_price'])){
+                    echo $cp['cp_percent']."%";
+                }else if(empty($cp['cp_percent'])){
+                    echo $cp['cp_price']."원";
+                }else{
+                    echo "-";
+                }
+                ?>
+                </td>
+                <td>
                 <?php if($cp['cp_price'] > $sell['price']){ ?>
                     <label>적용불가</label>
-                <?php }else if($cp['cp_target'] == ""){ ?>
-                    <input type='button' class="btn btn-dark" onclick='calc(<?=$cp["cp_price"]?>,<?=$cp["cp_id"]?>)' value="적용"/>
-                <?php } ?> 
+                <?php }else if(empty($cp['cp_percent'])){ ?>
+                    <input type='button' class="btn btn-dark" onclick="calc(<?=$cp["cp_price"]?>,'<?=$cp["cp_num"]?>')" value="적용"/>
+                <?php }else if(empty($cp['cp_price'])){?> 
+                    <input type='button' class="btn btn-dark" onclick="calc(<?=$cp["cp_percent"]?>,'<?=$cp["cp_num"]?>')" value="적용"/>
+                <?php } ?>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -73,10 +87,10 @@
     </div>
     <form method='POST' action='deal.php?action=dealTry'>
         <input type="hidden" name='deal[m_id]' value="<?=$_SESSION['sess_id']?>">
-        <input type="hidden" id ='cp_id' name='deal[cp_id]' value="">
+        <input type="hidden" id ='cp_id' name='deal[cp_num]' value="">
         <input type="hidden" name='deal[dealboard_id]' value="<?=$sell['_id']?>">
         <input type="submit" class="btn btn-dark" value="구매"/>
     </form>
-    <a href="index.php?action=dealBoard" class="btn btn-dark">취소</a>
+    <a href="deal.php?action=dealBoardView" class="btn btn-dark">취소</a>
 </div>
 

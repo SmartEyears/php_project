@@ -7,101 +7,118 @@ class couponDatabaseTable{
         $this->pdo = $pdo;
     }
 
-    public function giveCoupon($cp_type, $cp_target, $cp_price, $cp_name, $cp_max, $cp_min, $m_id, $end_date){
+    public function createCoupon($cp_num, $cp_type, $cp_price, $cp_percent, $cp_name, $max_num, $start_date, $end_date){
         $sql = "INSERT INTO `coupon`
                 SET
+                cp_num = :cp_num,
                 cp_type = :cp_type,
-                cp_target = :cp_target,
                 cp_price = :cp_price,
+                cp_percent = :cp_percent,
                 cp_name = :cp_name,
-                cp_max = :cp_max,
-                cp_min = :cp_min,
-                m_id = :m_id, 
+                max_num = :max_num,
+                reg_date = NOW(),
+                start_date = :start_date,
                 end_date = :end_date
                 ";
         $query = $this->pdo->prepare($sql);
+        $query->bindValue(':cp_num', $cp_num);
         $query->bindValue(':cp_type', $cp_type);
-        $query->bindValue(':cp_target', $cp_target);
         $query->bindValue(':cp_price', $cp_price);
+        $query->bindValue(':cp_percent', $cp_percent);
         $query->bindValue(':cp_name', $cp_name);
-        $query->bindValue(':cp_max', $cp_max);
-        $query->bindValue(':cp_min', $cp_min);
-        $query->bindValue(':m_id', $m_id);
+        $query->bindValue(':max_num', $max_num);
+        $query->bindValue(':start_date', $start_date);
         $query->bindValue(':end_date', $end_date);
         $query->execute();
     }
-
-    public function MyCoupon($m_id){
-        $sql = "SELECT * FROM `coupon` WHERE m_id = :m_id AND cp_type != 'E' AND used='N'";
-        $query = $this->pdo->prepare($sql);
-        $query->bindValue(':m_id', $m_id);
+    
+    public function selectCoupon(){
+        $sql = "SELECT * FROM `coupon` ORDER BY cp_num";
+        $query = $this->pdo->prepare($sql);;
         $query->execute();
-        return $query->fetchAll(); 
+        return $query->fetchAll();
     }
-
-    //쿠폰 사용처리
-    public function usedCoupon($cp_id){
-        $sql = "UPDATE `coupon` SET used = 'U' WHERE cp_id = :cp_id"; 
+    //활성 비활성
+    public function activationCoupon($status, $cp_num){
+        $sql = "UPDATE `coupon` SET status=:status WHERE cp_num=:cp_num";
         $query = $this->pdo->prepare($sql);
-        $query->bindValue(':cp_id', $cp_id);
+        $query->bindValue(':status', $status);
+        $query->bindValue(':cp_num', $cp_num);
         $query->execute();
     }
-
-    public function logCoupon($cp_id, $m_id, $deal_id, $money, $status, $reason){
-        $sql = "INSERT `cp_log` SET cp_id=:cp_id, 
+    //쿠폰 지급
+    public function giveCoupon($cp_num, $m_id){
+        $sql = "INSERT `cp_log` SET cp_num=:cp_num, 
                                     m_id=:m_id, 
-                                    board_id=:deal_id, 
-                                    money=:money,  
-                                    status=:status, 
-                                    cl_reason = :reason,
                                     reg_date=NOW()";
         $query = $this->pdo->prepare($sql);
-        $query->bindValue(':cp_id', $cp_id);
+        $query->bindValue(':cp_num', $cp_num);
         $query->bindValue(':m_id', $m_id);
-        $query->bindValue(':deal_id', $deal_id);
-        $query->bindValue(':money', $money);
-        $query->bindValue(':status', $status);
-        $query->bindValue(':reason', $reason);
         $query->execute();
     }
 
-     //유저 쿠폰 조회
-     public function userCoupon($m_id){
-        $sql = "SELECT * FROM `coupon` WHERE m_id = :m_id AND cp_type ='E' AND used='N'";
+    public function CouponValidation($m_id, $cp_num){
+        $sql = "SELECT * FROM `cp_log` WHERE m_id = :m_id AND cp_num = :cp_num FOR UPDATE";
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':m_id', $m_id);
-        $query->execute();
-        return $query->fetchAll();
-    }
-
-    public function selectCoupon($cp_id){
-        $sql = "SELECT * FROM `coupon` WHERE cp_id = :cp_id FOR UPDATE";
-        $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':cp_id' ,$cp_id);
+        $query->bindValue(':cp_num', $cp_num);
         $query->execute();
         return $query->fetch();
     }
 
-    public function selectCouponLog($status){
-        $sql = "SELECT * FROM `cp_log` WHERE status = :status";
+    public function findCoupon($cp_num){
+        $sql = "SELECT * FROM `coupon` WHERE cp_num = :cp_num FOR UPDATE";
         $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':status' ,$status);
+        $query->bindvalue(':cp_num' ,$cp_num);
+        $query->execute();
+        return $query->fetch();
+    }
+
+    //쿠폰 발급 횟수 카운트
+    public function updateCouponCount($give_num, $cp_num){
+        $sql = "UPDATE `coupon` SET give_num = :give_num WHERE cp_num = :cp_num";
+        $query = $this->pdo->prepare($sql);
+        $query->bindvalue(':give_num' ,$give_num);
+        $query->bindvalue(':cp_num' ,$cp_num);
+        $query->execute();
+    }
+
+    public function findMyCoupon($m_id){
+        $sql = "SELECT cp_num FROM `cp_log` WHERE m_id = :m_id AND status = 'N'";
+        $query = $this->pdo->prepare($sql);
+        $query->bindvalue(':m_id', $m_id);
         $query->execute();
         return $query->fetchAll();
     }
 
-    public function findUseCoupon($board_id){
+    public function fingCouponInfo($cp_num){
+        $sql = "SELECT * FROM `coupon` WHERE cp_num=:cp_num";
+        $query = $this->pdo->prepare($sql);
+        $query->bindvalue(':cp_num', $cp_num);
+        $query->execute();
+        return $query->fetch();
+    }
+
+    public function usedCoupon($m_id, $cp_num, $board_id, $saleprice){
+        $sql = "UPDATE `cp_log` 
+        SET status = 'U',
+            board_id = :board_id,
+            saleprice = :saleprice,
+            use_date = NOW()
+        WHERE cp_num=:cp_num AND m_id=:m_id";
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':m_id', $m_id);
+        $query->bindValue(':cp_num', $cp_num);
+        $query->bindValue(':board_id', $board_id);
+        $query->bindValue(':saleprice', $saleprice);
+        $query->execute();
+    }
+
+    public function findUseCoupon(){
         $sql = "SELECT * FROM `cp_log` WHERE board_id = :board_id";
         $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':board_id' ,$board_id);
+        $query->bindValue(':board_id', $board_id);
         $query->execute();
         return $query->fetch();
-    }
-    //사용 쿠폰 복원, 로그 남기기
-    public function updateUsedCP($cp_id){
-        $sql = "UPDATE `coupon` SET used = 'N' WHERE cp_id = :cp_id";
-        $query = $this->pdo->prepare($sql);
-        $query->bindvalue(':cp_id' ,$cp_id);
-        $query->execute();
     }
 }

@@ -19,6 +19,7 @@
                     <a class="nav-item nav-link" href="deal.php?action=dealBoardView">중고 거래</a>
                     <a class="nav-item nav-link" href="deal.php?action=dealLog">거래 내역</a>
                     <a class="nav-item nav-link" href="index.php?action=eventView">이벤트</a>
+                    <a class="nav-item nav-link" href="index.php?action=getCouponView">쿠폰 추가</a>
                 <?php }else{ ?>
                     <a class="nav-item nav-link" href="index.php?action=signUpView">회원 가입</a>
                     <a class="nav-item nav-link" href="index.php?action=userLoginView">로그인</a>

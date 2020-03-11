@@ -8,19 +8,22 @@ class AdminController{
     private $mileageTable;
     private $dealTable;
     private $eventTable;
+    private $couponTable;
     
     public function __construct (PDO $pdo,
                                 adminDatabaseTable $adminTable, 
                                 AESCrypt $aesCrypt, 
                                 mileageDatabaseTable $mileageTable,
                                 dealDatabaseTable $dealTable,
-                                eventDatabaseTable $eventTable){
+                                eventDatabaseTable $eventTable,
+                                couponDatabaseTable $couponTable){
         $this->pdo = $pdo;
         $this->adminTable = $adminTable;
         $this->aesCrypt = $aesCrypt;
         $this->mileageTable = $mileageTable;
         $this->dealTable = $dealTable;
         $this->eventTable = $eventTable;
+        $this->couponTable = $couponTable;
     }
 
     //홈
@@ -96,8 +99,8 @@ class AdminController{
                         'title' => $title,
                         'variables' => [
                             'user' => $user
-                    ] 
-                ];
+                        ]    
+                    ];
             }
         }catch(PDOException $e){
             $this->pdo->rollback();
@@ -113,7 +116,6 @@ class AdminController{
     //관리자 추가
     public function adminAdd(){
         try{
-            if($_SESSION['sess_admin'] == "onlyAdmin"){header('location: admin.php?action=home');}
             if(isset($_POST['admin_mem'])){
                 $admin_mem = $_POST['admin_mem'];
                 
@@ -121,12 +123,19 @@ class AdminController{
                 if($admin_mem['mem_pw'] != $admin_mem['mem_pw2']){
                     throw new Exception("입력한 비밀번호가 서로 다릅니다.");
                 }
-                
                 //공백 검사
-                if($admin_mem['mem_id'] == ""){throw new Exception('아이디를 입력해주세요');}
-                if(empty($admin_mem['mem_pw'])){throw new Exception('비밀번호를 입력해주세요');}
-                if(empty($admin_mem['mem_name'])){throw new Exception('이름을 입력해주세요');}
-                if(empty($admin_mem['mem_hp'])){throw new Exception('핸드폰 번호를 입력해주세요');}
+                if($admin_mem['mem_id'] == ""){
+                    throw new Exception('아이디를 입력해주세요');
+                }
+                if(empty($admin_mem['mem_pw'])){
+                    throw new Exception('비밀번호를 입력해주세요');
+                }
+                if(empty($admin_mem['mem_name'])){
+                    throw new Exception('이름을 입력해주세요');
+                }
+                if(empty($admin_mem['mem_hp'])){
+                    throw new Exception('핸드폰 번호를 입력해주세요');
+                }
                 unset($admin_mem['mem_pw2']);
 
                 $this->pdo->beginTransaction();
@@ -153,7 +162,6 @@ class AdminController{
      //회원정보조회
      public function adminUserList(){
         //관리자만 접속 가능
-        if($_SESSION['sess_admin'] == "onlyAdmin"){header('location: index.php?action=home');}
         $result = $this->adminTable->selectUser(); 
 
         $list = [];
@@ -176,16 +184,11 @@ class AdminController{
                         'list' => $list,
                     ]   
         ];
-
-        
-            
-
     }
 
     //관리자정보조회
     public function adminList(){
         //관리자만 접속 가능
-        if($_SESSION['sess_admin'] == "onlyAdmin"){header('location: index.php?action=home');}
         $result = $this->adminTable->selectAdmin($this->aesCrypt->encrypt($_SESSION['sess_adminId']));
         $list = [];
         foreach ($result as $oneAdmin){
@@ -200,16 +203,12 @@ class AdminController{
         }
 
         $title = '관리자목록';
-
         return ['template'=>'adminList.html.php',
                 'title' => $title, 
                 'variables' => [
                         'list' => $list,
                     ]   
         ];
-        
-        
-        
     }
 
     //회원 마일리지 조회
@@ -224,20 +223,21 @@ class AdminController{
             'mem_name' => $name,
             'mileage' => $nowMileage
         ];
-        return ['template'=>'adminManageMil.html.php',
-                    'title' => $title,
-                    'variables' => [
-                        'list' => $list,
-                        'mil' => $mil
-                    ]  
-            ];
+        return [
+            'template'=>'adminManageMil.html.php',
+            'title' => $title,
+            'variables' => [
+                'list' => $list,
+                'mil' => $mil
+            ]  
+        ];
     }
     //회원 쿠폰 조회
     public function manageCoupon(){
-        $member = $_POST['member'];
-        $id = $member['id'];
+        //$member = $_POST['member'];
+        //$id = $member['id'];
         //cp_id, deal_id, status
-        $userCp = $this->eventTable->userCoupon($id);
+        //$userCp = $this->eventTable->userCoupon($id);
         $list = [];
         foreach($userCp as $coupon){
             $list[] = [
@@ -356,10 +356,10 @@ class AdminController{
         ];
    }
 
-   public function winnerList(){
-       $list = $this->eventTable->selectEvent();
+    public function winnerList(){
+        $list = $this->eventTable->selectEvent();
        
-       foreach($list as $winner){
+        foreach($list as $winner){
             $user = $this->adminTable->findUser_id($winner['m_id']);
             $user = $user['mem_id'];
             $winnerlist[] = [
@@ -380,30 +380,153 @@ class AdminController{
            ]
        ];
    }
-   //사용내역
-   public function useCpList(){
-       $useCpLog = $this->dealTable->selectCouponLog('U');
-       $title = "쿠폰 사용 내역";
-       //var_dump($useCpLog);
+
+    public function CreateCouponView(){
+        $title = "쿠폰 발급";
+        
+        return [
+            'template' => 'adminCouponCreate.html.php',
+            'title' => $title
+        ];
+    }
+
+   public function CreateCoupon(){
+        try{
+            if(empty($_POST['coupon'])){
+                throw new Exception('값이 비었습니다.'); 
+            }
+            
+            $coupon = $_POST['coupon'];
+            
+            if(empty($coupon['name'])){
+                throw new Exception('이름 값이 비었습니다.');
+            }
+            
+            if($coupon['type'] == "금액권"){
+                $coupon['type'] = 'M';
+            }else if($coupon['type'] == "퍼센트"){
+                $coupon['type'] = 'P';
+            }else if($coupon['type'] == "이벤트"){
+                $coupon['type'] = 'E';
+            }else{
+                throw new Exception('타입 값이 비었습니다.');
+            }
+            
+            if(empty($coupon['price'])){
+                $coupon['price'] = NULL;
+            }
+            
+            if(empty($coupon['percent'])){
+                $coupon['percent'] = NULL;
+            }
+            
+            if(empty($coupon['percent']) AND empty($coupon['price'])){
+                throw new Exception('할인 값을 입력해주세요');
+            }
+            
+            if(empty($coupon['start_date'])){
+                throw new Exception('시작일을 입력해주세요');
+            }
+            
+            if(empty($coupon['end_date'])){
+                throw new Exception('종료일 입력해주세요');
+            }
+            //쿠폰번호 생성
+            $len = 12;
+            $char = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
+            $result = "";
+            srand((double)microtime()*1000000); //난수 초기화
+            for($i=0; $i<$len; $i++){
+                $couponStr = rand(0, strlen($char));
+                $result .= substr($char, $couponStr-1, 1);
+            }
+            
+            $this->couponTable->CreateCoupon($result, $coupon['type'], $coupon['price'], $coupon['percent'], $coupon['name'], $coupon['max_num'],$coupon['start_date'], $coupon['end_date']);
+            return [
+                    'template' => '../user/notice.html.php',
+                'variables' => [
+                    'message' => '쿠폰 생성 완료',
+                    'location' => "admin.php?action=couponList"
+                ],
+                'title' => "알림"
+            ];
+        }catch(PDOException $e){
+            $this->pdo->rollback();
+            return [
+                'template' => '../user/notice.html.php',
+                'variables' => [
+                    'message' => '데이터베이스 오류!',
+                    'location' => "admin.php?action=CreateCouponView"
+                ],
+                'title' => "오류"
+            ];
+        }catch(Exception $e){
+            return [
+                'template' => '../user/notice.html.php',
+                'variables' => [
+                    'message' => $e->getMessage(),
+                    'location' => "admin.php?action=CreateCouponView"
+                ],
+                'title' => "오류"
+            ];
+        }
+   }
+
+   public function couponActivation(){
+       $this->couponTable->activationCoupon('A', $_POST['cp_num']);
        return [
-           'template' => 'adminUseCpList.html.php',
+            'template' => '../user/notice.html.php',
+            'variables' => [
+                'message' => '쿠폰 활성화 완료',
+                'location' => "admin.php?action=couponList"
+            ],
+            'title' => "알림"
+        ];
+   }
+   
+   public function couponDeactivation(){
+       $this->couponTable->activationCoupon('D', $_POST['cp_num']);
+       return [
+            'template' => '../user/notice.html.php',
+            'variables' => [
+                'message' => '쿠폰 비활성화 완료',
+                'location' => "admin.php?action=couponList"
+            ],
+            'title' => "알림"
+        ];
+   }
+
+
+   //사용내역
+   public function couponList(){
+       $couponList = $this->couponTable->selectCoupon();
+       $title = "발급 쿠폰 내역";
+       return [
+           'template' => 'adminCouponList.html.php',
            'title' => $title,
            'variables' => [
-                'cpLog' => $useCpLog
+                'cpList' => $couponList
             ]
        ];
    }
+
    //발급내역
    public function giveCpList(){
-    $giveCpLog = $this->dealTable->selectCouponLog('G');
+    //$giveCpLog = $this->couponTa->selectCouponLog('G');
     $title = "쿠폰 발급 내역";
-    //dump($giveCpLog);
+    $result = $this->getCouponNum();
+    var_dump($result);
     return [
         'template' => 'adminGiveCpList.html.php',
         'title' => $title,
         'variables' => [
             'cpLog' => $giveCpLog
-        ]
-    ];
-}
+            ]
+        ];
+    }
+
+    public function getCoupon(){
+        
+        
+    }
 }

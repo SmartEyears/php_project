@@ -241,6 +241,67 @@ class userController {
         ];
     }
 
+    public function getCouponView(){
+        $title = "쿠폰 추가하기";
+        return [
+            'title' => $title,
+            'template' => 'userGetCoupon.html.php',
+        ];
+    }
+
+    public function getCoupon(){
+        try{
+            if(empty($_POST['coupon_num'])){
+                throw new Exception('값이 비었습니다.');
+            }
+            $this->pdo->beginTransaction();
+            $coupon = $this->couponTable->findCoupon($_POST['coupon_num']);
+            if(empty($coupon)){
+                throw new Exception('해당 쿠폰이 없습니다.');
+            }
+            if($coupon['status'] == 'D'){
+                throw new Exception('해당 쿠폰은 발급 종료되었습니다.');
+            }
+            $cp_val = $this->couponTable->CouponValidation($_SESSION['sess_id'], $_POST['coupon_num']);
+            if(!empty($cp_val)){
+                throw new Exception('이미 받으셨습니다.');
+            }
+            if($coupon['max_num'] <= $coupon['give_num']){
+                throw new Exception('발급 횟수 초과 되었습니다.');
+            }
+            $this->couponTable->giveCoupon($_POST['coupon_num'], $_SESSION['sess_id']);
+            $this->couponTable->updateCouponCount($coupon['give_num']+1, $coupon['cp_num']);
+            $this->pdo->commit();
+            return [
+                'template' => '../notice.html.php',
+                'variables' => [
+                    'message' => '발급이 완료 되었습니다.',
+                    'location' => "index.php?action=getCouponView"
+                ],
+                'title' => "알림"
+            ];
+        }catch(PDOException $e){
+            $this->pdo->rollback();
+            return [
+                'template' => '../notice.html.php',
+                'variables' => [
+                    'message' => '데이터베이스 오류!',
+                    'location' => "index.php?action=getCouponView"
+                ],
+                'title' => "오류"
+            ];
+        }catch(Exception $e){
+            return [
+                'template' => '../notice.html.php',
+                'variables' => [
+                    'message' => $e->getMessage(),
+                    'location' => "index.php?action=getCouponView"
+                ],
+                'title' => "오류"
+            ];
+        }
+    }
+
     public function event(){
         $this->checkSession();
         try{
@@ -297,17 +358,18 @@ class userController {
             $rank = winningAlgo($winner);
             $this->eventTable->insertEvent($m_id ,$cp_id, $rank);
 
+            //$this->couponTable->
             //함수 개선하기
             if($rank == 1){
-                $this->eventTable->couponTable('P', null, 9, '1등 당첨 90퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                $this->couponTable->couponTable('P', null, 9, '1등 당첨 90퍼센트 할인', null, null, $_SESSION['sess_id'], null);
             }else if($rank == 2){
-                $this->eventTable->couponTable('P', null, 5, '2등 당첨 50퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                $this->couponTable->couponTable('P', null, 5, '2등 당첨 50퍼센트 할인', null, null, $_SESSION['sess_id'], null);
             }else if($rank == 3){
-                $this->eventTable->couponTable('M', null, 50000, '3등 당첨 50000원 할인', 50000, null, $_SESSION['sess_id'], null);
+                $this->couponTable->couponTable('M', null, 50000, '3등 당첨 50000원 할인', 50000, null, $_SESSION['sess_id'], null);
             }else if($rank == 4){
-                $this->eventTable->couponTable('M', null, 10000, '4등 당첨 10000원 할인', 10000, null, $_SESSION['sess_id'], null);
+                $this->couponTable->couponTable('M', null, 10000, '4등 당첨 10000원 할인', 10000, null, $_SESSION['sess_id'], null);
             }else if($rank == 5){
-                $this->eventTable->couponTable('M', null, 5000, '5등 당첨 5000원 할인', 5000, null, $_SESSION['sess_id'], null);
+                $this->couponTable->couponTable('M', null, 5000, '5등 당첨 5000원 할인', 5000, null, $_SESSION['sess_id'], null);
             }else if($rank == 6){
                 $rank = "꽝";
             }else{
