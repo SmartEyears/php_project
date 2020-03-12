@@ -2,7 +2,7 @@
     <h1> 회원수정 </h1>
 </div>
 <div>
-    <form class="input" action="" method="POST">
+    <form class="input" action="admin.php?action=edit" method="POST">
         <input type="hidden" name="member[_id]" value="<?=$user['m_id']?>">
         <div>
             <label>아이디</label>

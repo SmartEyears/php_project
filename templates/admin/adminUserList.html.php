@@ -23,7 +23,7 @@
     <td><?=$oneUser['mem_hp']?></td>
     <td><?=$oneUser['mem_email']?></td>
     <td>
-        <form action="admin.php?action=edit" method="post">
+        <form action="admin.php?action=editView" method="post">
             <input type="hidden" name="mem_id" value="<?=$oneUser['mem_id']?>"/>
             <input class="btn btn-outline-primary" type="submit" value="수정"/>  
         </form>

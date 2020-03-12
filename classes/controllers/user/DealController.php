@@ -64,10 +64,6 @@ class DealController{
             if(empty($deal_id)){
                 throw new Exception('잘못 된 접근 입니다.');
             }
-            
-            if(empty($cp_num)){
-                throw new Exception('잘못 된 접근 입니다.');
-            }
 
             $product = $this->dealTable->findWrite($deal_id);
 
@@ -97,7 +93,7 @@ class DealController{
                 $price = $price - $salePri;
             }
             //쿠폰 사용처리
-            $this->couponTable->usedCoupon($m_id, $cp_num, deal_id, $salePri);
+            $this->couponTable->usedCoupon($m_id, $cp_num, $board_id, $salePri, 'U');
             //잔액
             $balance = $this->mileageTable->myMileage($m_id);
 
@@ -133,7 +129,7 @@ class DealController{
                 'template' => '../notice.html.php',
                 'variables' => [
                     'message' => $e->getMessage(),
-                    'location' => "deal.php?action=dealdealWait"
+                    'location' => "deal.php?action=dealWait"
                 ],
                 'title' => "알림!"
             ];
@@ -147,6 +143,9 @@ class DealController{
         $sell = $_POST['sell'];
         $coupon = $this->couponTable->findMyCoupon($_SESSION['sess_id']);
         //var_dump($coupon);
+        if(empty($coupon)){
+            throw new Exception('쿠폰 비었습니다.');
+        }
         $list = [];
         foreach ($coupon as $cp){
             $list[] = [
@@ -299,12 +298,13 @@ class DealController{
             }
             
             $fee = $price *0.05;
+           
             $this->mileageTable->mileageInsert($seller_id, $price-$fee, $product_name.'판매', NULL,'N', $fee);
-    
-            //이벤트 쿠폰 발급 보류
-            // $this->couponTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
-            // $this->couponTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $seller_id, NULL);
-            // $this->couponTable->giveCoupon('E', NULL, NULL, '이벤트 참여 쿠폰', NULL, NULL, $buyer_id, NULL);
+            
+            //이벤트 쿠폰 발급 보류 giveCoupon($cp_num, $m_id){
+            $this->couponTable->giveCoupon('WZFVEFT4OMCI', 'E', $seller_id);
+            $this->couponTable->giveCoupon('WZFVEFT4OMCI', 'E', $seller_id);
+            $this->couponTable->giveCoupon('WZFVEFT4OMCI', 'E', $buyer_id);
             $this->pdo->commit();
             return [
                 'template' => '../notice.html.php',
@@ -315,8 +315,9 @@ class DealController{
                 'title' => "알림!"
             ];
         }catch(PDOException $e){
-            //echo "Message:".$e->getMessage();
+            //echo "Message:".$e->getMessage().$e->getFile().':'.$e->getLine();;
             $this->pdo->rollback();
+            exit;
             return [
                 'template' => '../notice.html.php',
                 'variables' => [
@@ -356,12 +357,11 @@ class DealController{
             $coupon = $this->couponTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
             $product_name = $product['product'];
             if(!empty($coupon)){
-                //쿠폰 돌려주고 로그 남김
-                $this->couponTable->updateUsedCP($coupon['cp_id']);
-                $this->couponTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product_name.'주문 취소로 인한 재발급');
+                //쿠폰 돌려주고 로그 남김 
+                $this->couponTable->usedCoupon($coupon['m_id'], $coupon['cp_num'], $coupon['board_id'], $coupon['saleprice'], 'N');
             }
             //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
-            $salePri = $coupon['money'] ?? 0;
+            $salePri = $coupon['saleprice'] ?? 0;
             $price = $product['price'] - $salePri;
             $this->mileageTable->mileageInsert($buyer_id, $price, $product_name." 거래 취소로 인한 환불", NULL, 'N', '0');
             $this->pdo->commit();
@@ -419,7 +419,7 @@ class DealController{
             $this->pdo->beginTransaction();
             $board_id = $_POST['selfRefuse'];
             $product = $this->dealTable->findWrite($board_id);
-            if($product['m_id'] != $_SESSION['sess_id']){
+            if($product['buyer'] != $_SESSION['sess_id']){
                 throw new Exception('잘못된 접근 입니다.');
             }
             $buyer_id = $product['buyer'];
@@ -428,16 +428,23 @@ class DealController{
             $coupon = $this->couponTable->findUseCoupon($board_id); //로그에서 사용된 쿠폰이 있는지 확인
             if(!empty($coupon)){
                 //쿠폰 돌려주고 
-                $this->couponTable->updateUsedCP($coupon['cp_id']);
-                //로그$cp_id, $m_id, $board_id, $money, $status
-                $this->couponTable->logCoupon($coupon['cp_id'], $_SESSION['sess_id'], $board_id, 0, 'G', $product['name'].'구매자 취소');
+                //로그$m_id, $cp_num, $board_id, $saleprice, $status
+                $this->couponTable->usedCoupon($coupon['m_id'], $coupon['cp_num'], $coupon['board_id'], $coupon['saleprice'], 'N');
             }
             //마일리지 입금 할인 금액 있을 경우 빼고 $id, $save, $reason, $end_date, $status, $fee
-            $salePri = $coupon['money'] ?? 0;
+            $salePri = $coupon['saleprice'] ?? 0;
             $price = $product['price'] - $salePri;
             $product_name = $product['name'];
             $this->mileageTable->mileageInsert($buyer_id, $price,'거래 취소로 인한 환불', NULL, 'N', '0');
             $this->pdo->commit();
+            return [
+                'template' => '../notice.html.php',
+                'variables' => [
+                    'message' => '취소 완료!',
+                    'location' => "deal.php?action=dealWait"
+                ],
+                'title' => "오류!"
+            ];
         }catch(PDOException $e){
             //echo "Message:".$e->getMessage();
             $this->pdo->rollback();

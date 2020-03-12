@@ -59,3 +59,4 @@
     </tr>
     <?php endforeach; ?>
 </table>
+<a href="admin.php?action=CreateCouponView" class="btn btn-dark">쿠폰 생성</a>

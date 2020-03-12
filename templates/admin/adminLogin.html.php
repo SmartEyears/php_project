@@ -1,7 +1,7 @@
 <div class="header">
     <h1>로그인</h1>
 </div>
-<form class="adminlogin" action="" method="POST">
+<form class="adminlogin" action="admin.php?action=adminLogin" method="POST">
     <div class="input">
         <input class="form-control" type="text" name="adminlogin[mem_id]"  placeholder="아이디">
     </div>

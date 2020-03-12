@@ -80,6 +80,7 @@ class userController {
             header('location:index.php?action=home'); 
         }catch(PDOException $e){
             $this->pdo->rollback();
+            //echo "Message:".$e->getMessage()."위치:".$e->getFile().":".$e->getLine();
             return [
                 'template' => '../notice.html.php',
                 'variables' => [
@@ -224,28 +225,15 @@ class userController {
         return ['template'=>'userLogout.html.php', 'title' => $title ];
     }
 
-    public function eventView(){
-        $this->checkSession();
-        $my_ecp = $this->couponTable->userCoupon($_SESSION['sess_id']);
-        $eventList = $this->eventTable->userEventList($_SESSION['sess_id']);
-        $cp_count = count($my_ecp);
-        $title = "이벤트";
-        return [
-            'title' => $title,
-            'template' => 'userEvent.html.php',
-            'variables' => [
-                'cp_count' => $cp_count ?? 0,
-                'cp_list' => $my_ecp,
-                'list' => $eventList
-            ]    
-        ];
-    }
-
     public function getCouponView(){
         $title = "쿠폰 추가하기";
+        $couponList = $this->couponTable->MyCouponCheck($_SESSION['sess_id']);
         return [
             'title' => $title,
             'template' => 'userGetCoupon.html.php',
+            'variables' => [
+                'cp_list' => $couponList
+            ]
         ];
     }
 
@@ -269,7 +257,12 @@ class userController {
             if($coupon['max_num'] <= $coupon['give_num']){
                 throw new Exception('발급 횟수 초과 되었습니다.');
             }
-            $this->couponTable->giveCoupon($_POST['coupon_num'], $_SESSION['sess_id']);
+            $end_date = strtotime($coupon['end_date']);
+            $start_date = strtotime(date('Y-m-d'));
+            if($end_date <= $start_date){
+                throw new Exception('발급 기간이 지났습니다.');
+            }
+            $this->couponTable->giveCoupon($_POST['coupon_num'], $coupon['cp_type'], $_SESSION['sess_id']);
             $this->couponTable->updateCouponCount($coupon['give_num']+1, $coupon['cp_num']);
             $this->pdo->commit();
             return [
@@ -282,6 +275,7 @@ class userController {
             ];
         }catch(PDOException $e){
             $this->pdo->rollback();
+            //echo "Message:".$e->getMessage()."위치:".$e->getFile().":".$e->getLine();
             return [
                 'template' => '../notice.html.php',
                 'variables' => [
@@ -302,6 +296,24 @@ class userController {
         }
     }
 
+    public function eventView(){
+        $this->checkSession();
+        $my_ecp = $this->couponTable->findEventCoupon($_SESSION['sess_id']);
+        var_dump($my_ecp);
+        $eventList = $this->eventTable->userEventList($_SESSION['sess_id']);
+        $cp_count = count($my_ecp);
+        $title = "이벤트";
+        return [
+            'title' => $title,
+            'template' => 'userEvent.html.php',
+            'variables' => [
+                'cp_count' => $cp_count ?? 0,
+                'cp_list' => $my_ecp,
+                'list' => $eventList
+            ]    
+        ];
+    }
+
     public function event(){
         $this->checkSession();
         try{
@@ -315,7 +327,7 @@ class userController {
                 throw new Exception("쿠폰이 없습니다.");
             }
             //쿠폰 사용으로 업데이트               
-            $this->couponTable->usedCoupon($cp_id);
+            $this->couponTable->usedEventCoupon($cp_id);
             //당첨알고리즘                
             function winningAlgo($winnerList){
                 $pctg = mt_rand(1,100);
@@ -361,17 +373,17 @@ class userController {
             //$this->couponTable->
             //함수 개선하기
             if($rank == 1){
-                $this->couponTable->couponTable('P', null, 9, '1등 당첨 90퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                //$this->couponTable->couponTable('P', null, 9, '1등 당첨 90퍼센트 할인', null, null, $_SESSION['sess_id'], null);
             }else if($rank == 2){
-                $this->couponTable->couponTable('P', null, 5, '2등 당첨 50퍼센트 할인', null, null, $_SESSION['sess_id'], null);
+                //$this->couponTable->couponTable('P', null, 5, '2등 당첨 50퍼센트 할인', null, null, $_SESSION['sess_id'], null);
             }else if($rank == 3){
-                $this->couponTable->couponTable('M', null, 50000, '3등 당첨 50000원 할인', 50000, null, $_SESSION['sess_id'], null);
+                //$this->couponTable->couponTable('M', null, 50000, '3등 당첨 50000원 할인', 50000, null, $_SESSION['sess_id'], null);
             }else if($rank == 4){
-                $this->couponTable->couponTable('M', null, 10000, '4등 당첨 10000원 할인', 10000, null, $_SESSION['sess_id'], null);
+                //$this->couponTable->couponTable('M', null, 10000, '4등 당첨 10000원 할인', 10000, null, $_SESSION['sess_id'], null);
             }else if($rank == 5){
-                $this->couponTable->couponTable('M', null, 5000, '5등 당첨 5000원 할인', 5000, null, $_SESSION['sess_id'], null);
+                //$this->couponTable->couponTable('M', null, 5000, '5등 당첨 5000원 할인', 5000, null, $_SESSION['sess_id'], null);
             }else if($rank == 6){
-                $rank = "꽝";
+                //$rank = "꽝";
             }else{
                 throw new Exception("비정상적인 접근입니다.");                    
             }

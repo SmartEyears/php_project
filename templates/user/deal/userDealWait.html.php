@@ -34,7 +34,7 @@
         <td><?=$board['price']?></td>
         <td><?=$board['reg_date']?></td>
         <td>
-            <form action='' method='POST'>
+            <form action='deal.php?action=selfRefuse' method='POST'>
                 <input type='hidden' name='selfRefuse' value='<?=$board['board_id']?>'>
                 <input type='submit' class='btn btn-dark' value="구매취소">
             <form>

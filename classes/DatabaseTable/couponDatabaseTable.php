@@ -47,12 +47,14 @@ class couponDatabaseTable{
         $query->execute();
     }
     //쿠폰 지급
-    public function giveCoupon($cp_num, $m_id){
+    public function giveCoupon($cp_num, $cp_type, $m_id){
         $sql = "INSERT `cp_log` SET cp_num=:cp_num, 
+                                    cp_type=:cp_type,
                                     m_id=:m_id, 
                                     reg_date=NOW()";
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':cp_num', $cp_num);
+        $query->bindValue(':cp_type', $cp_type);
         $query->bindValue(':m_id', $m_id);
         $query->execute();
     }
@@ -84,9 +86,25 @@ class couponDatabaseTable{
     }
 
     public function findMyCoupon($m_id){
-        $sql = "SELECT cp_num FROM `cp_log` WHERE m_id = :m_id AND status = 'N'";
+        $sql = "SELECT cp_num FROM `cp_log` WHERE m_id = :m_id AND status = 'N' AND cp_type != 'E'";
         $query = $this->pdo->prepare($sql);
         $query->bindvalue(':m_id', $m_id);
+        $query->execute();
+        return $query->fetchAll();
+    }
+
+    public function findUserCoupon($m_id){
+        $sql = "SELECT * FROM `v_cplist` WHERE m_id = :m_id";
+        $query = $this->pdo->prepare($sql);
+        $query->bindvalue(':m_id', $m_id);
+        $query->execute();
+        return $query->fetchAll();
+    }
+
+    public function MyCouponCheck($m_id){
+        $sql = "SELECT * FROM `v_cplist` WHERE m_id = :m_id AND status = 'N'";
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':m_id', $m_id);
         $query->execute();
         return $query->fetchAll();
     }
@@ -99,14 +117,15 @@ class couponDatabaseTable{
         return $query->fetch();
     }
 
-    public function usedCoupon($m_id, $cp_num, $board_id, $saleprice){
+    public function usedCoupon($m_id, $cp_num, $board_id, $saleprice, $status){
         $sql = "UPDATE `cp_log` 
-        SET status = 'U',
+        SET status = :status,
             board_id = :board_id,
             saleprice = :saleprice,
             use_date = NOW()
         WHERE cp_num=:cp_num AND m_id=:m_id";
         $query = $this->pdo->prepare($sql);
+        $query->bindValue(':status', $status);
         $query->bindValue(':m_id', $m_id);
         $query->bindValue(':cp_num', $cp_num);
         $query->bindValue(':board_id', $board_id);
@@ -114,11 +133,30 @@ class couponDatabaseTable{
         $query->execute();
     }
 
-    public function findUseCoupon(){
+    public function usedEventCoupon($cp_id){
+        $sql = 'UPDATE `cp_log`
+        SET status = "U",
+            use_date = NOW()
+        WHERE cp_id = :cp_id
+        ';
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':cp_id', $cp_id);
+        $query->execute();
+    }
+
+    public function findUseCoupon($board_id){
         $sql = "SELECT * FROM `cp_log` WHERE board_id = :board_id";
         $query = $this->pdo->prepare($sql);
         $query->bindValue(':board_id', $board_id);
         $query->execute();
         return $query->fetch();
+    }
+
+    public function findEventCoupon($m_id){
+        $sql = "SELECT * FROM `v_cplist` WHERE m_id=:m_id AND cp_type = 'E' AND status = 'N'";
+        $query = $this->pdo->prepare($sql);
+        $query->bindValue(':m_id', $m_id);
+        $query->execute();
+        return $query->fetchAll();
     }
 }
